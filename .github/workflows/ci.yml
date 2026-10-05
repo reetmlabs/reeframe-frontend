@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Check SPDX headers
+        run: |
+          missing=$(git ls-files '*.cpp' '*.h' '*.qml' '*.js' 'CMakeLists.txt' | xargs grep -L 'SPDX-License-Identifier: Apache-2.0' || true)
+          if [ -n "$missing" ]; then
+            echo "Missing SPDX header in:"
+            echo "$missing"
+            exit 1
+          fi
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@a9c63c7c123f3069cff414e7e482d95dfa9d8125 # v4.4.1
+        with:
+          version: "6.8.*"
+          modules: "qtmultimedia"
+          cache: true
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgl1-mesa-dev libxkbcommon-dev
+
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
+
+      - name: Build
+        run: cmake --build build --target reeframe-fe-qmltests -j$(nproc)
+
+      - name: Run QML tests
+        working-directory: build
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: ./reeframe-fe-qmltests -txt

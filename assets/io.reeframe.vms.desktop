@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Reeframe VMS
+GenericName=Video Management System
+Comment=Professional VMS Desktop Client
+Exec=reeframe-fe %u
+Icon=io.reeframe.vms
+Terminal=false
+Categories=Video;AudioVideo;
+Keywords=VMS;Camera;Video;Surveillance;
