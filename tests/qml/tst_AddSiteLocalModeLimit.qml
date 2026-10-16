@@ -6,8 +6,8 @@ import QtTest
 import Reeframe
 
 // Coverage for the single-site limit in local mode: SiteManagerView's header
-// "+ Add Site" button hides once a site already exists in local mode, and a
-// Coordinator connection lifts that limit entirely regardless of count.
+// "+ Add Site" button hides once a site already exists in local mode, and
+// stays hidden in Coordinator mode regardless of count.
 TestCase {
     id: testCase
     name: "AddSiteLocalModeLimit"
@@ -51,24 +51,17 @@ TestCase {
         tryCompare(btn, "visible", false);
     }
 
-    function test_coordinatorConnectionLiftsTheLimitRegardlessOfCount() {
-        testCase._localSiteId = SiteManager.addSite("Local Limit Site " + Date.now());
+    function test_buttonHiddenInCoordinatorModeRegardlessOfCount() {
         const btn = findChild(siteView, "addSiteButton");
-        tryCompare(btn, "visible", false);
+        tryCompare(btn, "visible", true);
 
         const url = "https://coord-" + Date.now() + "-" + Math.random() + ".test";
         CoordinatorManager.addConnection(url);
         tryCompare(CoordinatorManager, "isCoordinatorMode", true);
+        tryCompare(btn, "visible", false);
 
-        // Still visible: Coordinator mode has no local site-count limit, even
-        // though the count that would have blocked it in local mode hasn't
-        // changed (the local site is simply not shown while in Coordinator mode).
-        tryCompare(btn, "visible", true);
-
-        // Seeding a remote site (a nonzero Coordinator site count) must not bring
-        // the limit back either.
         SiteManager.seedRemoteSiteForTest(url, "qmltest-be-limit", "Remote", "http://127.0.0.1:1");
         wait(50);
-        compare(btn.visible, true);
+        compare(btn.visible, false);
     }
 }
