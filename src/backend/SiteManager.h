@@ -70,6 +70,8 @@ class SiteManager : public QAbstractListModel {
     QString activeSiteVersion() const;
     QString activeSiteCoordinatorUrl() const; // empty for a local site
 
+    // Local mode only. In Coordinator mode sites come from GET /me/sites, so
+    // addSite returns an empty ID and addNode does nothing.
     Q_INVOKABLE QString addSite(const QString& name); // returns new site ID
     Q_INVOKABLE void removeSite(const QString& siteId);
     Q_INVOKABLE void addNode(const QString& siteId, const QString& url);
