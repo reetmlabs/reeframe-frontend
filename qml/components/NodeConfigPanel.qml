@@ -248,6 +248,7 @@ Rectangle {
 
             TextField {
                 id: labelField
+                objectName: "nodeConfigLabelField"
                 anchors {
                     left: parent.left; leftMargin: 56
                     right: parent.right; rightMargin: Theme.spaceM
@@ -277,6 +278,7 @@ Rectangle {
         Rectangle { width: parent.width; height: 1; color: Theme.border }
 
         Item {
+            objectName: "nodeConfigTypeSection"
             visible: !panelRoot.isForkNode
             width: parent.width; height: 80
 
