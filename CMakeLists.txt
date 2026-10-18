@@ -360,8 +360,8 @@ qt_add_executable(reeframe-fe-qmltests
     tests/cpp/main.cpp
     tests/cpp/TestSetup.h
     tests/cpp/TestSetup.cpp
-    tests/cpp/EmptyBackendServer.h
-    tests/cpp/EmptyBackendServer.cpp
+    tests/cpp/FakeBackendServer.h
+    tests/cpp/FakeBackendServer.cpp
 )
 
 target_link_libraries(reeframe-fe-qmltests PRIVATE

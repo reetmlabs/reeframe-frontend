@@ -22,7 +22,7 @@ class EventModel;
 class ExportModel;
 class ThumbnailCache;
 class VideoSinkRegistry;
-class EmptyBackendServer;
+class FakeBackendServer;
 
 // Registers the same C++ context properties as src/main.cpp so QML test
 // files can drive the real "Reeframe" module views (App.qml, MatrixView.qml,
@@ -53,5 +53,6 @@ class TestSetup : public QObject {
     EventModel* m_eventModel = nullptr;
     ExportModel* m_exportModel = nullptr;
     VideoSinkRegistry* m_videoSinkRegistry = nullptr;
-    EmptyBackendServer* m_emptyBackend = nullptr;
+    FakeBackendServer* m_emptyBackend = nullptr;
+    FakeBackendServer* m_rejectingBackend = nullptr;
 };
