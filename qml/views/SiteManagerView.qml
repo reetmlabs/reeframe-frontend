@@ -79,11 +79,10 @@ Item {
             radius: Theme.radiusS
             color: addMouse.containsMouse ? Qt.darker(Theme.accent, 1.1) : Theme.accent
             anchors { right: parent.right; rightMargin: Theme.spaceL; verticalCenter: parent.verticalCenter }
-            // Local mode (no Coordinator connection configured) allows exactly
-            // one locally-configured site; a Coordinator connection lifts
-            // this limit entirely, since sites then live in its own
-            // directory rather than being added here at all.
-            visible: CoordinatorManager.isCoordinatorMode || SiteManager.count === 0
+            // Local mode allows exactly one locally-configured site. In
+            // Coordinator mode sites come from the Coordinator, so none are
+            // added here at all.
+            visible: !CoordinatorManager.isCoordinatorMode && SiteManager.count === 0
 
             Text {
                 anchors.centerIn: parent
@@ -300,12 +299,16 @@ Item {
     // bounds even with zero delegates, which would otherwise swallow clicks
     // on this button.
     EmptyState {
+        objectName: "sitesEmptyState"
         visible: SiteManager.count === 0
         anchors.centerIn: parent
         icon: "qrc:/tb/world.svg"
-        title: qsTr("No sites connected")
-        message: qsTr("Connect to a backend to get started.")
-        actionText: qsTr("+ Add Site")
+        title: CoordinatorManager.isCoordinatorMode ? qsTr("No sites available")
+                                                    : qsTr("No sites connected")
+        message: CoordinatorManager.isCoordinatorMode
+                 ? qsTr("Ask a Coordinator admin to register a backend and give you access.")
+                 : qsTr("Connect to a backend to get started.")
+        actionText: CoordinatorManager.isCoordinatorMode ? "" : qsTr("+ Add Site")
         onActionClicked: addDialog.open()
     }
 

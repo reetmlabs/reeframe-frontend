@@ -146,6 +146,8 @@ QString SiteManager::activeSiteCoordinatorUrl() const {
 }
 
 QString SiteManager::addSite(const QString& name) {
+    if (m_coordinatorManager->isCoordinatorMode())
+        return {};
     const QString id = QUuid::createUuid().toString(QUuid::WithoutBraces);
     m_db->insertSite(id, name, QDateTime::currentSecsSinceEpoch());
     beginInsertRows({}, m_sites.size(), m_sites.size());
@@ -177,6 +179,8 @@ void SiteManager::removeSite(const QString& siteId) {
 }
 
 void SiteManager::addNode(const QString& siteId, const QString& url) {
+    if (m_coordinatorManager->isCoordinatorMode())
+        return;
     const int i = siteIndexById(siteId);
     if (i < 0)
         return;
