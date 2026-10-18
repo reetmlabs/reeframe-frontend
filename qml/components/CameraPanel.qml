@@ -255,7 +255,7 @@ Rectangle {
             }
 
             Text {
-                visible: CameraModel.loading
+                visible: CameraModel.loading && !CameraModel.authRejected
                 text: qsTr("Loading…")
                 font.pixelSize: Theme.fontS
                 color: Theme.textDisabled
@@ -265,6 +265,7 @@ Rectangle {
             ListView {
                 id: cameraList
                 model: CameraModel
+                visible: !CameraModel.authRejected
                 clip: true
                 anchors {
                     left: parent.left; right: parent.right
@@ -578,7 +579,7 @@ Rectangle {
             // captures press events across its full bounds even when empty.
             EmptyState {
                 objectName: "cameraListEmptyState"
-                visible: !CameraModel.loading && CameraModel.count === 0
+                visible: !CameraModel.loading && !CameraModel.authRejected && CameraModel.count === 0
                 anchors.centerIn: parent
                 width: Math.min(220, root.width - Theme.spaceL * 2)
                 icon: "qrc:/tb/camera-filled.svg"
@@ -586,6 +587,18 @@ Rectangle {
                 message: qsTr("Add a camera to start viewing footage.")
                 actionText: qsTr("+ Add Camera")
                 onActionClicked: addDialog.open()
+            }
+
+            EmptyState {
+                objectName: "cameraListAuthRejectedState"
+                visible: CameraModel.authRejected
+                anchors.centerIn: parent
+                width: Math.min(220, root.width - Theme.spaceL * 2)
+                icon: "qrc:/tb/camera-filled.svg"
+                title: qsTr("Sign-in rejected")
+                message: SiteManager.activeSiteCoordinatorUrl.length > 0
+                         ? qsTr("This backend rejected your Coordinator sign-in. Ask an admin to check that the backend's site ID matches the one on the Coordinator.")
+                         : qsTr("This backend rejected your sign-in.")
             }
 
             Behavior on opacity { NumberAnimation { duration: Theme.durationFast } }

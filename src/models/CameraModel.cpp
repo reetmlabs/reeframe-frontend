@@ -29,11 +29,16 @@ void CameraModel::onActiveSiteChanged() {
 
     QObject::disconnect(m_sessionConnection);
     QObject::disconnect(m_statusConnection);
+    QObject::disconnect(m_tokenRejectedConnection);
     // A refresh() in flight against the previous site's client may never
     // reply if that client gets destroyed first, leaving loading stuck true.
     setLoading(false);
     m_hasFetchedForClient = false;
+    setAuthRejected(client && client->tokenRejected());
     if (client) {
+        m_tokenRejectedConnection =
+            connect(client, &BackendClient::tokenRejectedChanged, this,
+                    [this, client] { setAuthRejected(client->tokenRejected()); });
         m_sessionConnection =
             connect(client, &BackendClient::sessionChanged, this, &CameraModel::refresh);
         m_statusConnection = connect(client, &BackendClient::statusChanged, this, [this, client] {
@@ -491,6 +496,13 @@ CameraDto CameraModel::fromJson(const QJsonObject& obj, const QString& nodeId) {
     cam.createdAt = obj["created_at"].toInteger();
     cam.nodeId = nodeId;
     return cam;
+}
+
+void CameraModel::setAuthRejected(bool v) {
+    if (m_authRejected == v)
+        return;
+    m_authRejected = v;
+    emit authRejectedChanged();
 }
 
 void CameraModel::setLoading(bool v) {

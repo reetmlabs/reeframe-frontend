@@ -14,6 +14,8 @@ class BackendClient;
 class CameraModel : public QAbstractListModel {
     Q_OBJECT
     Q_PROPERTY(bool loading READ loading NOTIFY loadingChanged)
+    // The active site's backend rejects every token this app can get for it.
+    Q_PROPERTY(bool authRejected READ authRejected NOTIFY authRejectedChanged)
     Q_PROPERTY(int count READ rowCount NOTIFY countChanged)
   public:
     enum Role {
@@ -38,6 +40,7 @@ class CameraModel : public QAbstractListModel {
     QHash<int, QByteArray> roleNames() const override;
 
     bool loading() const { return m_loading; }
+    bool authRejected() const { return m_authRejected; }
 
     Q_INVOKABLE void refresh();
     Q_INVOKABLE void createCamera(const QString& name, const QString& location,
@@ -85,6 +88,7 @@ class CameraModel : public QAbstractListModel {
 
   signals:
     void loadingChanged();
+    void authRejectedChanged();
     void countChanged();
     void cameraDeleted(const QString& cameraId);
     void enableRollback(const QString& id, bool previousValue);
@@ -102,6 +106,7 @@ class CameraModel : public QAbstractListModel {
   private:
     static CameraDto fromJson(const QJsonObject& obj, const QString& nodeId);
     void setLoading(bool v);
+    void setAuthRejected(bool v);
     void setRecording(const QString& cameraId, bool recording);
     void setRelayUrl(const QString& cameraId, const QString& url, bool sub);
     const CameraDto* findCamera(const QString& id) const;
@@ -122,6 +127,8 @@ class CameraModel : public QAbstractListModel {
     // Retries refresh() once the active site's client recovers to Online,
     // covering both a late-starting BE and a BE that drops and reconnects.
     QMetaObject::Connection m_statusConnection;
+    QMetaObject::Connection m_tokenRejectedConnection;
+    bool m_authRejected = false;
     // The client m_statusConnection targets. A Coordinator site can re-emit
     // activeSiteChanged for the same client while it settles; rebuilding the
     // connection on every one of those risks dropping a status change mid-teardown.
