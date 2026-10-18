@@ -20,6 +20,9 @@ class BackendClient : public QObject {
     Q_PROPERTY(bool hasSession READ hasSession NOTIFY sessionChanged)
     Q_PROPERTY(QString username READ username NOTIFY sessionChanged)
     Q_PROPERTY(QString role READ role NOTIFY sessionChanged)
+    // True when the backend answered 401 to a token that was just issued, so
+    // fetching another one would only be rejected again.
+    Q_PROPERTY(bool tokenRejected READ tokenRejected NOTIFY tokenRejectedChanged)
   public:
     enum class Status { Disconnected, Connecting, Online, Error };
     Q_ENUM(Status)
@@ -47,6 +50,7 @@ class BackendClient : public QObject {
     // empty until the next real sign-in. Display-only, never used for any
     // access decision on the FE side.
     QString role() const { return m_role; }
+    bool tokenRejected() const { return m_tokenRejected; }
     Q_INVOKABLE QString accessToken() const { return m_accessToken; }
     Q_INVOKABLE QString refreshToken() const { return m_refreshToken; }
     // Unix seconds decoded from the access token's own `exp` claim, or 0 if
@@ -105,6 +109,7 @@ class BackendClient : public QObject {
     void sessionChanged();
     void signInFailed(const QString& message);
     void refreshFailed(const QString& message);
+    void tokenRejectedChanged();
 
   private:
     // transferTimeoutMs of 0 leaves the request without a timeout.
@@ -117,6 +122,11 @@ class BackendClient : public QObject {
     void pollHealthSilently();
     void setStatus(Status s);
     void applySessionFromAuthResponse(QRestReply& reply);
+    // Stores a token that was just issued and hasn't been accepted by the
+    // backend yet.
+    void setFreshAccessToken(const QString& accessToken);
+    void handleUnauthorized(const QString& sentToken);
+    void setTokenRejected(bool rejected);
     void clearSession();
 
     // Schedules refreshAccessToken() to run shortly before
@@ -138,6 +148,11 @@ class BackendClient : public QObject {
     QString m_refreshToken;
     qint64 m_accessTokenExpiresAt = 0;
     bool m_refreshInFlight = false;
+    // Whether the current token was just issued and no protected route has
+    // accepted it yet. A 401 then means the backend won't take any token
+    // from this source, not that the token went stale.
+    bool m_tokenUnconfirmed = false;
+    bool m_tokenRejected = false;
     QTimer m_expiryTimer;
     QTimer m_healthPollTimer;
     CoordinatorTokenProvider m_coordinatorTokenProvider;

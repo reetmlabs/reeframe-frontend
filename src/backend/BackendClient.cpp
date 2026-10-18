@@ -93,10 +93,18 @@ void BackendClient::sendRequest(const QByteArray& verb, const QString& path,
     // reason to refresh (refreshAccessToken() itself posts to /auth/refresh,
     // which would otherwise recurse into itself on a failure).
     const bool isAuthRoute = path.startsWith(QLatin1String("/auth/"));
-    ReplyCallback wrapped = [this, isAuthRoute, cb](QRestReply& reply) {
-        if (!isAuthRoute && reply.httpStatus() == 401 &&
-            (!m_refreshToken.isEmpty() || m_coordinatorTokenProvider))
-            refreshAccessToken();
+    // /health answers without checking the token, so its replies say nothing
+    // about whether the backend accepts it.
+    const bool checksToken = !isAuthRoute && path != QLatin1String("/health");
+    ReplyCallback wrapped = [this, checksToken, cb, sentToken = m_accessToken](QRestReply& reply) {
+        if (checksToken) {
+            if (reply.httpStatus() == 401) {
+                handleUnauthorized(sentToken);
+            } else if (reply.isSuccess() && !sentToken.isEmpty() && sentToken == m_accessToken) {
+                m_tokenUnconfirmed = false;
+                setTokenRejected(false);
+            }
+        }
         cb(reply);
     };
 
@@ -110,6 +118,34 @@ void BackendClient::sendRequest(const QByteArray& verb, const QString& path,
         m_rest.put(req, body, ctx, std::move(wrapped));
     else // PATCH
         m_rest.patch(req, body, ctx, std::move(wrapped));
+}
+
+void BackendClient::handleUnauthorized(const QString& sentToken) {
+    if (m_refreshToken.isEmpty() && !m_coordinatorTokenProvider)
+        return;
+    // Sent with a token that has since been replaced. Whoever refetches on
+    // sessionChanged() will try the new one.
+    if (sentToken != m_accessToken)
+        return;
+    if (m_tokenUnconfirmed && !m_accessToken.isEmpty()) {
+        setTokenRejected(true);
+        return;
+    }
+    refreshAccessToken();
+}
+
+void BackendClient::setFreshAccessToken(const QString& accessToken) {
+    m_accessToken = accessToken;
+    m_accessTokenExpiresAt = decodeJwtExpiry(accessToken);
+    m_tokenUnconfirmed = true;
+    scheduleExpiryRefresh();
+}
+
+void BackendClient::setTokenRejected(bool rejected) {
+    if (m_tokenRejected == rejected)
+        return;
+    m_tokenRejected = rejected;
+    emit tokenRejectedChanged();
 }
 
 void BackendClient::restoreSession(const QString& username, const QString& accessToken,
@@ -175,11 +211,9 @@ void BackendClient::refreshAccessToken() {
                 clearSession();
                 return;
             }
-            m_accessToken = accessToken;
             m_username = username;
             m_role = role;
-            m_accessTokenExpiresAt = decodeJwtExpiry(accessToken);
-            scheduleExpiryRefresh();
+            setFreshAccessToken(accessToken);
             emit sessionChanged();
         });
         return;
@@ -212,9 +246,7 @@ void BackendClient::refreshAccessToken() {
             clearSession();
             return;
         }
-        m_accessToken = doc->object().value("access_token").toString();
-        m_accessTokenExpiresAt = decodeJwtExpiry(m_accessToken);
-        scheduleExpiryRefresh();
+        setFreshAccessToken(doc->object().value("access_token").toString());
         emit sessionChanged();
     });
 }
@@ -229,12 +261,10 @@ void BackendClient::applySessionFromAuthResponse(QRestReply& reply) {
     }
     const auto obj = doc->object();
     const auto userObj = obj["user"].toObject();
-    m_accessToken = obj["access_token"].toString();
     m_refreshToken = obj["refresh_token"].toString();
     m_username = userObj.value("username").toString();
     m_role = userObj.value("role").toString();
-    m_accessTokenExpiresAt = decodeJwtExpiry(m_accessToken);
-    scheduleExpiryRefresh();
+    setFreshAccessToken(obj["access_token"].toString());
     emit sessionChanged();
 }
 
@@ -244,7 +274,9 @@ void BackendClient::clearSession() {
     m_accessToken.clear();
     m_refreshToken.clear();
     m_accessTokenExpiresAt = 0;
+    m_tokenUnconfirmed = false;
     m_expiryTimer.stop();
+    setTokenRejected(false);
     emit sessionChanged();
 }
 
@@ -279,4 +311,8 @@ void BackendClient::setStatus(Status s) {
         return;
     m_status = s;
     emit statusChanged();
+    // A backend coming back Online may have been restarted with a config that
+    // accepts our tokens, so a rejected session gets one more try.
+    if (s == Status::Online && m_tokenRejected)
+        refreshAccessToken();
 }
