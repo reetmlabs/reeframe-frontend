@@ -11,6 +11,7 @@
 #include "CameraModel.h"
 #include "CoordinatorManager.h"
 #include "DestinationModel.h"
+#include "EmptyBackendServer.h"
 #include "ExportModel.h"
 #include "MatrixProfileModel.h"
 #include "OverlayPrefs.h"
@@ -56,6 +57,7 @@ void TestSetup::qmlEngineAvailable(QQmlEngine* engine) {
         m_eventModel = new EventModel(m_siteManager, this);
         m_exportModel = new ExportModel(m_siteManager, this);
         m_videoSinkRegistry = new VideoSinkRegistry(this);
+        m_emptyBackend = new EmptyBackendServer(this);
 
         QObject::connect(m_siteManager, &SiteManager::activeSiteChanged, this, [this]() {
             m_tileLayoutModel->setActiveSiteId(m_siteManager->activeSiteId());
@@ -80,4 +82,5 @@ void TestSetup::qmlEngineAvailable(QQmlEngine* engine) {
     engine->rootContext()->setContextProperty("EventModel", m_eventModel);
     engine->rootContext()->setContextProperty("ExportModel", m_exportModel);
     engine->rootContext()->setContextProperty("VideoSinkRegistry", m_videoSinkRegistry);
+    engine->rootContext()->setContextProperty("EmptyBackend", m_emptyBackend);
 }
