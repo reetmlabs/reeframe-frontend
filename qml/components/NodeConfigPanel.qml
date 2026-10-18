@@ -11,6 +11,8 @@ Rectangle {
 
     readonly property string nodeId: nodeData.id !== undefined ? nodeData.id : ""
     readonly property string dagNodeType: nodeData.type || ""
+    // A Fork has no config of its own, so the panel only shows its label.
+    readonly property bool isForkNode: dagNodeType === "fork"
     readonly property string currentActionType: {
         const cfg = nodeData.config
         return (cfg && cfg.action_type) ? cfg.action_type : ""
@@ -246,6 +248,7 @@ Rectangle {
 
             TextField {
                 id: labelField
+                objectName: "nodeConfigLabelField"
                 anchors {
                     left: parent.left; leftMargin: 56
                     right: parent.right; rightMargin: Theme.spaceM
@@ -275,6 +278,8 @@ Rectangle {
         Rectangle { width: parent.width; height: 1; color: Theme.border }
 
         Item {
+            objectName: "nodeConfigTypeSection"
+            visible: !panelRoot.isForkNode
             width: parent.width; height: 80
 
             Column {
@@ -319,11 +324,12 @@ Rectangle {
             }
         }
 
-        Rectangle { width: parent.width; height: 1; color: Theme.border }
+        Rectangle { visible: !panelRoot.isForkNode; width: parent.width; height: 1; color: Theme.border }
     }
 
     ScrollView {
         id: formScroll
+        visible: !panelRoot.isForkNode
         anchors { top: headerSection.bottom; left: parent.left; right: parent.right; bottom: parent.bottom }
         contentWidth: width
         clip: true

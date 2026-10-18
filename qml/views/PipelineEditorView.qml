@@ -92,7 +92,7 @@ Item {
     readonly property bool showConfigPanel: {
         const t = root.selectedNode.type
         return t === "action" || t === "device_control" || t === "transport"
-            || t === "trigger_root" || t === "condition"
+            || t === "trigger_root" || t === "condition" || t === "fork"
     }
 
     readonly property bool isTransportNode: root.selectedNode.type === "transport"
