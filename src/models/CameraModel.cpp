@@ -32,6 +32,7 @@ void CameraModel::onActiveSiteChanged() {
     // A refresh() in flight against the previous site's client may never
     // reply if that client gets destroyed first, leaving loading stuck true.
     setLoading(false);
+    m_hasFetchedForClient = false;
     if (client) {
         m_sessionConnection =
             connect(client, &BackendClient::sessionChanged, this, &CameraModel::refresh);
@@ -109,12 +110,15 @@ void CameraModel::refresh() {
     auto* client = m_siteManager->clientForSite(m_siteManager->activeSiteId());
     if (!client)
         return;
-    setLoading(true);
+    if (!m_hasFetchedForClient)
+        setLoading(true);
     const QString nodeId = client->nodeId();
-    client->get("/cameras", this, [this, nodeId](QRestReply& reply) {
+    client->get("/cameras", this, [this, client, nodeId](QRestReply& reply) {
         setLoading(false);
         if (!reply.isSuccess())
             return;
+        if (client == m_statusConnectedClient)
+            m_hasFetchedForClient = true;
         const auto doc = reply.readJson();
         if (!doc || !doc->isArray())
             return;

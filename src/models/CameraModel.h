@@ -110,6 +110,10 @@ class CameraModel : public QAbstractListModel {
     SiteManager* m_siteManager;
     QList<CameraDto> m_cameras;
     bool m_loading = false;
+    // Whether the active client has returned a camera list yet. Only fetches
+    // before that show as loading, so background refreshes don't swap the
+    // empty state for "Loading..." and back.
+    bool m_hasFetchedForClient = false;
     // The active site's token exchange can still be in flight when
     // activeSiteChanged fires, so the first refresh() may 401 before a
     // session exists; this connection retries once one does. Re-subscribed
