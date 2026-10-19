@@ -7,6 +7,7 @@ import "DagGeometry.js" as DagGeometry
 
 Item {
     id: edgeRoot
+    objectName: "dagEdge_" + (edgeData.id || "")
 
     property var edgeData: ({})
     property bool isSelected: false
