@@ -123,6 +123,7 @@ qt_add_qml_module(reeframe-fe-core
         qml/components/CommandPalette.qml
         qml/components/DagCanvas.qml
         qml/components/DagEdge.qml
+        qml/components/DagGeometry.js
         qml/components/DagNode.qml
         qml/components/NodeConfigPanel.qml
         qml/components/TransportConfigPanel.qml

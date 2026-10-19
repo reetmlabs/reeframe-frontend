@@ -3,6 +3,7 @@
 
 import QtQuick
 import QtQuick.Shapes
+import "DagGeometry.js" as DagGeometry
 
 Item {
     id: edgeRoot
@@ -14,6 +15,9 @@ Item {
     // from edgeData alone the way a Condition's true/false port can.
     property int fromPortIndex: 0
     property int outputPortCount: 1
+    // The target node's output port count, which sets its height and so
+    // where its input port sits.
+    property int toOutputPortCount: 1
 
     // Per-node {x, y} overrides while a node is being dragged (see
     // DagNode.dragPositionChanged), keyed by node id. Lets the edge follow
@@ -22,9 +26,6 @@ Item {
     property var liveNodePos: ({})
 
     signal selectRequested()
-
-    readonly property real nodeW: 160
-    readonly property real nodeH: 56
 
     /* Re-evaluate whenever nodes move, not just when edges change. */
     readonly property var fromNode: {
@@ -48,12 +49,12 @@ Item {
     readonly property var fromPos: (valid && liveNodePos[fromNode.id]) ? liveNodePos[fromNode.id] : fromNode
     readonly property var toPos: (valid && liveNodePos[toNode.id]) ? liveNodePos[toNode.id] : toNode
 
-    readonly property real startX: valid ? fromPos.x + nodeW : 0
+    readonly property real startX: valid ? fromPos.x + DagGeometry.nodeWidth : 0
     readonly property real startY: valid
-        ? fromPos.y + nodeH * (fromPortIndex + 1) / (outputPortCount + 1)
+        ? fromPos.y + DagGeometry.outputPortY(fromPortIndex, outputPortCount)
         : 0
     readonly property real endX: valid ? toPos.x : 0
-    readonly property real endY: valid ? toPos.y + nodeH / 2 : 0
+    readonly property real endY: valid ? toPos.y + DagGeometry.inputPortY(toOutputPortCount) : 0
 
     // Floors the horizontal reach of the control points so near-vertically
     // stacked nodes (small dx) still get a visible curve instead of the

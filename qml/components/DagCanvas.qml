@@ -5,6 +5,7 @@ import QtQuick
 import QtQuick.Controls.Basic
 import QtQuick.Shapes
 import "../PipelineValidation.js" as PipelineValidation
+import "DagGeometry.js" as DagGeometry
 
 Item {
     id: root
@@ -60,7 +61,8 @@ Item {
         const n = PipelineGraphModel.nodeById(nodeId)
         if (!n || n.id === undefined) return
         root.selectId(nodeId)
-        root.centerOn(n.x + 80, n.y + 28)
+        root.centerOn(n.x + DagGeometry.nodeWidth / 2,
+                      n.y + DagGeometry.nodeHeight(root.outputPortCountFor(n.id)) / 2)
     }
 
     // Highlights every node in the list at once with no single selection,
@@ -72,8 +74,9 @@ Item {
         if (nodes.length === 0) return
         root.selectId("")
         root.highlightedIds = nodeIds
-        const cx = nodes.reduce((sum, n) => sum + n.x + 80, 0) / nodes.length
-        const cy = nodes.reduce((sum, n) => sum + n.y + 28, 0) / nodes.length
+        const cx = nodes.reduce((sum, n) => sum + n.x + DagGeometry.nodeWidth / 2, 0) / nodes.length
+        const cy = nodes.reduce((sum, n) =>
+            sum + n.y + DagGeometry.nodeHeight(root.outputPortCountFor(n.id)) / 2, 0) / nodes.length
         root.centerOn(cx, cy)
     }
 
@@ -230,6 +233,7 @@ Item {
                 liveNodePos: root.liveNodePos
                 fromPortIndex: root.portIndexForEdge(modelData)
                 outputPortCount: root.outputPortCountFor(modelData.fromNodeId)
+                toOutputPortCount: root.outputPortCountFor(modelData.toNodeId)
                 onSelectRequested: root.selectId(edgeData.id)
             }
         }
@@ -246,9 +250,9 @@ Item {
             readonly property var gFromPos: (gValid && root.liveNodePos[fromNode.id])
                 ? root.liveNodePos[fromNode.id] : fromNode
 
-            readonly property real gStartX: gValid ? gFromPos.x + 160 : 0
+            readonly property real gStartX: gValid ? gFromPos.x + DagGeometry.nodeWidth : 0
             readonly property real gStartY: gValid
-                ? gFromPos.y + 56 * (root.edgeFromPortIndex + 1) / (gPortCount + 1)
+                ? gFromPos.y + DagGeometry.outputPortY(root.edgeFromPortIndex, gPortCount)
                 : 0
             readonly property real gEndX: root.edgeCursorPos.x
             readonly property real gEndY: root.edgeCursorPos.y
@@ -314,7 +318,8 @@ Item {
                     root.selectId("")
                     root.edgeFromNodeId = nodeData.id
                     root.edgeFromPortIndex = portIndex
-                    root.edgeCursorPos = Qt.point(nodeData.x + 160, nodeData.y + 28)
+                    root.edgeCursorPos = Qt.point(nodeData.x + DagGeometry.nodeWidth,
+                        nodeData.y + DagGeometry.outputPortY(portIndex, outputPortCount))
                     root.drawingEdge = true
                 }
 

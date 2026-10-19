@@ -3,6 +3,7 @@
 
 import QtQuick
 import QtQuick.Controls.Basic
+import "DagGeometry.js" as DagGeometry
 
 Item {
     id: nodeRoot
@@ -33,8 +34,8 @@ Item {
     x: nodeData.x !== undefined ? nodeData.x : 0
     y: nodeData.y !== undefined ? nodeData.y : 0
 
-    width: 160
-    height: 56
+    width: DagGeometry.nodeWidth
+    height: DagGeometry.nodeHeight(outputPortCount)
 
     readonly property color typeColor: {
         switch (nodeData.type) {
@@ -212,7 +213,7 @@ Item {
 
             width: 10; height: 10; radius: 5
             x: nodeRoot.width - 5
-            y: (nodeRoot.height * (index + 1) / (nodeRoot.outputPortCount + 1)) - 5
+            y: DagGeometry.outputPortY(index, nodeRoot.outputPortCount) - height / 2
             color: Theme.surface
             border.color: nodeRoot.typeColor
             border.width: 2
@@ -227,11 +228,11 @@ Item {
 
     // Port positions in the parent (world) item's coordinate space, for DagCanvas to draw edges.
     function inputPortPos() {
-        return mapToItem(nodeRoot.parent, 0, nodeRoot.height / 2)
+        return mapToItem(nodeRoot.parent, 0, DagGeometry.inputPortY(nodeRoot.outputPortCount))
     }
 
     function outputPortPos(index) {
-        const portCenterY = nodeRoot.height * (index + 1) / (nodeRoot.outputPortCount + 1)
+        const portCenterY = DagGeometry.outputPortY(index, nodeRoot.outputPortCount)
         return mapToItem(nodeRoot.parent, nodeRoot.width, portCenterY)
     }
 }
