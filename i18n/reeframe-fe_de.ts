@@ -779,8 +779,8 @@
     </message>
     <message>
         <location filename="../qml/views/FullCameraView.qml" line="122"/>
-        <source>No live view — start relay from the camera list</source>
-        <translation>Keine Live-Ansicht — Relay über die Kameraliste starten</translation>
+        <source>No live view — start restream from the camera list</source>
+        <translation type="unfinished">Keine Live-Ansicht — Restream über die Kameraliste starten</translation>
     </message>
     <message>
         <location filename="../qml/views/FullCameraView.qml" line="123"/>

@@ -235,8 +235,8 @@ Item {
                 root.openFullCameraView({
                     cameraId: camId,
                     cameraName: camName,
-                    relayUrl: cam.cameraRelayUrl || "",
-                    mainRelayUrl: cam.cameraMainRelayUrl || "",
+                    subRestreamUrl: cam.cameraSubRestreamUrl || "",
+                    mainRestreamUrl: cam.cameraMainRestreamUrl || "",
                     isRecording: cam.cameraRecording || false,
                     hasSubStream: (cam.cameraSubRtspUrl || "").length > 0
                 })

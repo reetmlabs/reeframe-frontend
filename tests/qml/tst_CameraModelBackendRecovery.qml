@@ -7,7 +7,7 @@ import Reeframe
 
 // CameraModel.backendRecovered() fires on every Error-to-Online transition
 // of the active site's client, with no minimum outage duration, since a
-// backend restart kills an on-demand relay no matter how briefly it was down.
+// backend restart kills an on-demand restream no matter how briefly it was down.
 TestCase {
     id: testCase
     name: "CameraModelBackendRecovery"

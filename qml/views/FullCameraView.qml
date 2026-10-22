@@ -25,31 +25,31 @@ Item {
 
     property string cameraId: ""
     property string cameraName: ""
-    property string relayUrl: ""
-    // The main/full-res relay (see ApiTypes.h CameraDto::mainRelayUrl) is
+    property string subRestreamUrl: ""
+    // The main/full-res restream (see ApiTypes.h CameraDto::mainRestreamUrl) is
     // requested fresh on every open; once it arrives, localSink connects in
     // the background and takes over from the borrowed tile sink.
-    property string mainRelayUrl: ""
+    property string mainRestreamUrl: ""
     property bool isRecording: false
-    // When false, CameraModel.startRelay()'s "sub" requests fall back to the
+    // When false, CameraModel.startRestream()'s "sub" requests fall back to the
     // same "main" slot requested below, so closing it would pull the tile's
-    // only relay out from under it.
+    // only restream out from under it.
     property bool hasSubStream: false
-    // Deferred to maybeStartMainRelay() rather than started unconditionally,
+    // Deferred to maybeStartMainRestream() rather than started unconditionally,
     // since this view can open straight into scoped recorded playback with
     // no live video shown at all.
-    property bool _mainRelayStarted: false
+    property bool _mainRestreamStarted: false
 
     // Set before minimizing/escaping, before goLive() flips isLive true.
-    // Stops maybeStartMainRelay() from starting a relay this view is about
+    // Stops maybeStartMainRestream() from starting a restream this view is about
     // to stop again on its own destruction.
     property bool _closing: false
 
-    function maybeStartMainRelay() {
-        if (root._closing || root._mainRelayStarted || !root.hasSubStream || !root._showingLive)
+    function maybeStartMainRestream() {
+        if (root._closing || root._mainRestreamStarted || !root.hasSubStream || !root._showingLive)
             return
-        root._mainRelayStarted = true
-        CameraModel.startRelay(root.cameraId, false)
+        root._mainRestreamStarted = true
+        CameraModel.startRestream(root.cameraId, false)
     }
 
     property bool recording: root.isRecording
@@ -102,7 +102,7 @@ Item {
             if (TimelineController.isLive) {
                 playbackPlayer.stop()
                 root.playbackState = "idle"
-                root.maybeStartMainRelay()
+                root.maybeStartMainRestream()
             } else if (root._inScope)
                 root.startPlaybackAt(TimelineController.currentInstant)
         }
@@ -176,23 +176,23 @@ Item {
             root.recording = isRecording
             root.recordingInFlight = false
         }
-        function onRelayStateChanged(camId, url, sub) {
+        function onRestreamStateChanged(camId, url, sub) {
             if (camId !== root.cameraId) return
             if (sub) {
-                root.relayUrl = url
+                root.subRestreamUrl = url
                 return
             }
             // Routing through empty forces a real property change even
             // if the backend returns the same URL.
-            root.mainRelayUrl = ""
-            root.mainRelayUrl = url
+            root.mainRestreamUrl = ""
+            root.mainRestreamUrl = url
         }
-        // The main relay this view started may be left over from before the
+        // The main restream this view started may be left over from before the
         // outage and silently dead, so ask for a fresh one.
         function onBackendRecovered() {
-            if (root._mainRelayStarted) {
-                root._mainRelayStarted = false
-                root.maybeStartMainRelay()
+            if (root._mainRestreamStarted) {
+                root._mainRestreamStarted = false
+                root.maybeStartMainRestream()
             }
         }
     }
@@ -203,18 +203,18 @@ Item {
         function onConnectedChanged() {
             root.connectionState = root.borrowedSink.connected ? "connected" : "connecting"
         }
-        // The tile that owns this sink requests the fresh relay.
+        // The tile that owns this sink requests the fresh restream.
         function onStalled() {
             if (!root._localSinkRendering)
                 root.connectionState = "connecting"
         }
     }
 
-    // Opens once mainRelayUrl actually arrives (the request kicked off below
+    // Opens once mainRestreamUrl actually arrives (the request kicked off below
     // is async, so it's essentially never already set at Component.onCompleted).
-    onMainRelayUrlChanged: {
-        if (mainRelayUrl.length > 0)
-            localSink.open(mainRelayUrl)
+    onMainRestreamUrlChanged: {
+        if (mainRestreamUrl.length > 0)
+            localSink.open(mainRestreamUrl)
     }
 
     Component.onCompleted: {
@@ -222,18 +222,18 @@ Item {
         if (borrowedSink) {
             borrowedSink.setVideoOutput(videoOutput.videoSink)
             connectionState = borrowedSink.connected ? "connected" : "connecting"
-            // Upgrades to the main/full-res relay in the background. The
+            // Upgrades to the main/full-res restream in the background. The
             // borrowed sink above keeps showing the tile's sub-res stream
-            // until it arrives (see onMainRelayUrlChanged).
-            root.maybeStartMainRelay()
-        } else if (relayUrl.length > 0) {
+            // until it arrives (see onMainRestreamUrlChanged).
+            root.maybeStartMainRestream()
+        } else if (subRestreamUrl.length > 0) {
             // Fallback: no tile currently live for this camera (shouldn't
             // normally happen, since full-screen is only reachable from an
             // active tile's expand button). Open a direct connection
             // rather than showing a permanently blank view.
             connectionState = "connecting"
-            localSink.open(relayUrl)
-            root.maybeStartMainRelay()
+            localSink.open(subRestreamUrl)
+            root.maybeStartMainRestream()
         } else {
             connectionState = "idle"
         }
@@ -243,15 +243,15 @@ Item {
     }
     Component.onDestruction: {
         localSink.close()
-        // Only if this view actually started it (see maybeStartMainRelay()).
-        // Otherwise it's either nothing, or the tile's own relay, and
+        // Only if this view actually started it (see maybeStartMainRestream()).
+        // Otherwise it's either nothing, or the tile's own restream, and
         // stopping it here would force that tile into a full reconnect.
-        if (root._mainRelayStarted)
-            CameraModel.stopRelay(root.cameraId, false)
+        if (root._mainRestreamStarted)
+            CameraModel.stopRestream(root.cameraId, false)
         VideoSinkRegistry.notifyReleased(root.cameraId)
     }
 
-    /* Used only for the mainRelayUrl upgrade, or as the no-tile-found
+    /* Used only for the mainRestreamUrl upgrade, or as the no-tile-found
        fallback above, never for the normal borrowed-sink path. */
     QtMultimediaVideoSink {
         id: localSink
@@ -266,9 +266,9 @@ Item {
         onStalled: {
             if (root._localSinkRendering || root.borrowedSink === null)
                 root.connectionState = "connecting"
-            if (root._mainRelayStarted) {
-                root._mainRelayStarted = false
-                root.maybeStartMainRelay()
+            if (root._mainRestreamStarted) {
+                root._mainRestreamStarted = false
+                root.maybeStartMainRestream()
             }
         }
     }
@@ -291,7 +291,7 @@ Item {
 
         Text {
             anchors.centerIn: parent
-            text: root.connectionState === "idle" ? qsTr("No live view — start relay from the camera list")
+            text: root.connectionState === "idle" ? qsTr("No live view — start restream from the camera list")
                 :                                   qsTr("Connecting…")
             font.pixelSize: Theme.fontM
             color: "white"

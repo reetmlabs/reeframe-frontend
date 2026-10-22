@@ -25,7 +25,7 @@ License 2.0 and under other licenses in the future.
 3. Add or update a test for what you changed when the existing test setup
    makes that practical. Tests live in `tests/qml/`.
 4. Keep commits small and focused. Commit messages are one imperative line,
-   for example `Retry a failed relay request with backoff`.
+   for example `Retry a failed restream request with backoff`.
 5. Open a pull request against `main` and describe what changed and why. CI
    must pass before it can be merged.
 

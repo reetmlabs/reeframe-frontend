@@ -10,14 +10,14 @@ Item {
     property string cameraId: ""
     property string cameraName: ""
     property string cameraLocation: ""
-    property string relayUrl: ""
+    property string restreamUrl: ""
     property bool isRecording: false
-    // A relay request for this tile is pending a retry, so an empty
-    // relayUrl still reads as "Connecting…" rather than "No live view".
-    property bool awaitingRelay: false
+    // A restream request for this tile is pending a retry, so an empty
+    // restreamUrl still reads as "Connecting…" rather than "No live view".
+    property bool awaitingRestream: false
 
     signal openFullScreen(string cameraId)
-    // The live stream stopped delivering frames or failed, so its relay
+    // The live stream stopped delivering frames or failed, so its restream
     // should be requested again.
     signal liveStreamStalled()
     signal closeRequested(string cameraId)
@@ -214,9 +214,9 @@ Item {
     }
 
     function updateStream() {
-        if (relayUrl.length > 0) {
+        if (restreamUrl.length > 0) {
             root.connectionState = "connecting"
-            sink.open(relayUrl)
+            sink.open(restreamUrl)
         } else {
             sink.close()
             root.connectionState = "idle"
@@ -235,7 +235,7 @@ Item {
         sink.close()
     }
 
-    onRelayUrlChanged: updateStream()
+    onRestreamUrlChanged: updateStream()
 
     /* ----- Video sink ----- */
     QtMultimediaVideoSink {
@@ -244,13 +244,13 @@ Item {
         onConnectedChanged: {
             if (connected)
                 root.connectionState = "connected"
-            else if (root.relayUrl.length > 0)
+            else if (root.restreamUrl.length > 0)
                 root.connectionState = "connecting"
             else
                 root.connectionState = "idle"
         }
         // Errors also end in stalled(), so the tile keeps showing
-        // "Connecting…" while a fresh relay is requested.
+        // "Connecting…" while a fresh restream is requested.
         onStalled: {
             root.connectionState = "connecting"
             root.liveStreamStalled()
@@ -288,7 +288,7 @@ Item {
 
         Text {
             anchors.centerIn: parent
-            readonly property bool _noLiveView: root.connectionState === "idle" && !root.awaitingRelay
+            readonly property bool _noLiveView: root.connectionState === "idle" && !root.awaitingRestream
             text: _noLiveView ? "No live view" : "Connecting…"
             font.pixelSize: Theme.fontS
             color: _noLiveView ? Theme.textDisabled : "white"
