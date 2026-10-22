@@ -6,6 +6,7 @@
 #include <QAbstractListModel>
 #include <QList>
 #include <QMetaObject>
+#include <QTimer>
 #include <QVariantList>
 
 class SiteManager;
@@ -17,6 +18,10 @@ class CameraModel : public QAbstractListModel {
     // The active site's backend rejects every token this app can get for it.
     Q_PROPERTY(bool authRejected READ authRejected NOTIFY authRejectedChanged)
     Q_PROPERTY(int count READ rowCount NOTIFY countChanged)
+    // How often the camera list is re-fetched in the background, to pick up
+    // changes made outside this app such as recording state.
+    Q_PROPERTY(int refreshIntervalMs READ refreshIntervalMs WRITE setRefreshIntervalMs NOTIFY
+                   refreshIntervalMsChanged)
   public:
     enum Role {
         CameraIdRole = Qt::UserRole + 1,
@@ -41,6 +46,8 @@ class CameraModel : public QAbstractListModel {
 
     bool loading() const { return m_loading; }
     bool authRejected() const { return m_authRejected; }
+    int refreshIntervalMs() const { return m_refreshTimer.interval(); }
+    void setRefreshIntervalMs(int ms);
 
     Q_INVOKABLE void refresh();
     Q_INVOKABLE void createCamera(const QString& name, const QString& location,
@@ -90,6 +97,7 @@ class CameraModel : public QAbstractListModel {
     void loadingChanged();
     void authRejectedChanged();
     void countChanged();
+    void refreshIntervalMsChanged();
     void cameraDeleted(const QString& cameraId);
     void enableRollback(const QString& id, bool previousValue);
     void recordingStateChanged(const QString& cameraId, bool recording);
@@ -111,6 +119,7 @@ class CameraModel : public QAbstractListModel {
     void setRestreamUrl(const QString& cameraId, const QString& url, bool sub);
     const CameraDto* findCamera(const QString& id) const;
     void onActiveSiteChanged();
+    void onRefreshTimer();
 
     SiteManager* m_siteManager;
     QList<CameraDto> m_cameras;
@@ -136,4 +145,7 @@ class CameraModel : public QAbstractListModel {
     // Whether the active client is currently in Status::Error, so the next
     // Online transition can tell a real recovery apart from a redundant one.
     bool m_wasDown = false;
+    // Fires every refreshIntervalMs. A tick only refreshes while the active
+    // site is Online and signed in.
+    QTimer m_refreshTimer;
 };
