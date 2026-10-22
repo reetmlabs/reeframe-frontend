@@ -130,6 +130,10 @@ void CameraModel::refresh() {
         QList<CameraDto> cameras;
         for (const auto& val : doc->array())
             cameras.append(fromJson(val.toObject(), nodeId));
+        // A reset makes every tile re-sync its stream, so skip it when
+        // nothing in the list changed.
+        if (cameras == m_cameras)
+            return;
         beginResetModel();
         m_cameras = std::move(cameras);
         endResetModel();

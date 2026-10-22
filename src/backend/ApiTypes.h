@@ -21,6 +21,15 @@ struct CameraDto {
     QString mainRestreamUrl; // main-quality restream URL, used by full-screen view
     qint64 createdAt = 0;
     QString nodeId;
+
+    bool operator==(const CameraDto& o) const {
+        return id == o.id && name == o.name && location == o.location && rtspUrl == o.rtspUrl
+               && subRtspUrl == o.subRtspUrl && username == o.username && enabled == o.enabled
+               && recording == o.recording && subRestreamUrl == o.subRestreamUrl
+               && mainRestreamUrl == o.mainRestreamUrl && createdAt == o.createdAt
+               && nodeId == o.nodeId;
+    }
+    bool operator!=(const CameraDto& o) const { return !(*this == o); }
 };
 
 struct SourceDto {
