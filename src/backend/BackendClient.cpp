@@ -47,8 +47,11 @@ void BackendClient::pollHealthSilently() {
 void BackendClient::handleHealthReply(QRestReply& reply) {
     if (reply.isSuccess()) {
         const auto doc = reply.readJson();
-        m_version = doc ? doc->object().value("version").toString() : QString{};
-        emit versionChanged();
+        const QString version = doc ? doc->object().value("version").toString() : QString{};
+        if (version != m_version) {
+            m_version = version;
+            emit versionChanged();
+        }
         setStatus(Status::Online);
     } else {
         setStatus(Status::Error);
