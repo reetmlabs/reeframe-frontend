@@ -5,13 +5,13 @@ import QtQuick
 import QtTest
 import Reeframe
 
-// A tile's video sink only reopens when its relayUrl property actually
+// A tile's video sink only reopens when its restreamUrl property actually
 // changes value. If the backend hands back the same URL text a camera
 // already had (as it can after a recovery), a plain reassignment would be
 // a silent no-op, so the tile must still force a real property change.
 TestCase {
     id: testCase
-    name: "MatrixViewRelayReconnect"
+    name: "MatrixViewRestreamReconnect"
     width: 1280
     height: 800
     visible: true
@@ -27,13 +27,13 @@ TestCase {
 
     function initTestCase() {
         TileLayoutModel.activeSiteId = "qmltest-site-" + Date.now();
-        cameraId = "qmltest-relay-cam-" + Date.now();
+        cameraId = "qmltest-restream-cam-" + Date.now();
         CameraModel.insertTestCamera(cameraId, "Test Camera");
         tileId = TileLayoutModel.addTile();
         TileLayoutModel.assignCamera(tileId, cameraId);
     }
 
-    function test_sameRelayUrlStillForcesTheTileToReopenItsStream() {
+    function test_sameRestreamUrlStillForcesTheTileToReopenItsStream() {
         const tileItem = findChild(matrixView, "matrixTile_" + tileId);
         verify(tileItem !== null, "matrix tile not found");
         const cameraTile = findChild(tileItem, "matrixTileCameraStream");
@@ -44,16 +44,16 @@ TestCase {
         spy.target = cameraTile;
         spy.signalName = "connectionStateChanged";
 
-        CameraModel.setRelayUrlForTest(cameraId, "rtsp://relay.test/one", true);
+        CameraModel.setRestreamUrlForTest(cameraId, "rtsp://restream.test/one", true);
         compare(cameraTile.connectionState, "connecting",
-                "expected the tile to attempt opening the fresh relay");
+                "expected the tile to attempt opening the fresh restream");
 
         const countBeforeRepeat = spy.count;
         // Same URL as before: must still force a real reopen rather than
         // being silently swallowed as a no-op property assignment.
-        CameraModel.setRelayUrlForTest(cameraId, "rtsp://relay.test/one", true);
+        CameraModel.setRestreamUrlForTest(cameraId, "rtsp://restream.test/one", true);
 
         verify(spy.count > countBeforeRepeat,
-               "reasserting the same relay URL must still force the tile to reopen its stream");
+               "reasserting the same restream URL must still force the tile to reopen its stream");
     }
 }

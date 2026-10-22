@@ -50,7 +50,7 @@ void CameraModel::onActiveSiteChanged() {
                 m_wasDown = false;
                 refresh();
                 if (wasDown) {
-                    qCDebug(lcLiveView) << "backend recovered, requesting fresh relays";
+                    qCDebug(lcLiveView) << "backend recovered, requesting fresh restreams";
                     emit backendRecovered();
                 }
             }
@@ -84,10 +84,10 @@ QVariant CameraModel::data(const QModelIndex& index, int role) const {
         return cam.username;
     case CameraRecordingRole:
         return cam.recording;
-    case CameraRelayUrlRole:
-        return cam.relayUrl;
-    case CameraMainRelayUrlRole:
-        return cam.mainRelayUrl;
+    case CameraSubRestreamUrlRole:
+        return cam.subRestreamUrl;
+    case CameraMainRestreamUrlRole:
+        return cam.mainRestreamUrl;
     case CameraCreatedAtRole:
         return cam.createdAt;
     default:
@@ -105,8 +105,8 @@ QHash<int, QByteArray> CameraModel::roleNames() const {
         {CameraSubRtspUrlRole, "cameraSubRtspUrl"},
         {CameraUsernameRole, "cameraUsername"},
         {CameraRecordingRole, "cameraRecording"},
-        {CameraRelayUrlRole, "cameraRelayUrl"},
-        {CameraMainRelayUrlRole, "cameraMainRelayUrl"},
+        {CameraSubRestreamUrlRole, "cameraSubRestreamUrl"},
+        {CameraMainRestreamUrlRole, "cameraMainRestreamUrl"},
         {CameraCreatedAtRole, "cameraCreatedAt"},
     };
 }
@@ -304,65 +304,65 @@ static QString describeFailure(QRestReply& reply) {
         .arg(message.isEmpty() ? QString{} : QStringLiteral(" - ") + message);
 }
 
-void CameraModel::startRelay(const QString& cameraId, bool sub) {
+void CameraModel::startRestream(const QString& cameraId, bool sub) {
     const CameraDto* cam = findCamera(cameraId);
     if (!cam) {
-        qCDebug(lcLiveView) << "relay/start skipped for" << cameraId << ": camera not loaded";
+        qCDebug(lcLiveView) << "restream/start skipped for" << cameraId << ": camera not loaded";
         return;
     }
     auto* client = m_siteManager->clientForNode(cam->nodeId);
     if (!client) {
-        qCDebug(lcLiveView) << "relay/start skipped for" << cameraId << ": no client for node";
+        qCDebug(lcLiveView) << "restream/start skipped for" << cameraId << ": no client for node";
         return;
     }
-    // The sub relay needs a configured sub-stream; fall back to main rather
+    // The sub restream needs a configured sub-stream; fall back to main rather
     // than failing outright for a camera with only one RTSP stream.
     const bool actualSub = sub && !cam->subRtspUrl.isEmpty();
     const QString path =
-        "/cameras/" + cameraId + "/relay/start?quality=" + (actualSub ? "sub" : "main");
-    qCDebug(lcLiveView) << "relay/start (" << (sub ? "sub" : "main") << ") sent for" << cameraId;
+        "/cameras/" + cameraId + "/restream/start?quality=" + (actualSub ? "sub" : "main");
+    qCDebug(lcLiveView) << "restream/start (" << (sub ? "sub" : "main") << ") sent for" << cameraId;
     client->post(path, {}, this, [this, cameraId, sub](QRestReply& reply) {
         if (!reply.isSuccess()) {
             // No UI surface for this yet (see MatrixView's silent drag-drop/
             // tile-restore callers), so log it to make a "camera X won't show
             // live view" report diagnosable from the app's own output.
-            qCWarning(lcLiveView) << "relay/start (" << (sub ? "sub" : "main") << ") failed for"
+            qCWarning(lcLiveView) << "restream/start (" << (sub ? "sub" : "main") << ") failed for"
                                   << cameraId << ":" << describeFailure(reply);
-            emit relayStartFailed(cameraId, sub);
+            emit restreamStartFailed(cameraId, sub);
             return;
         }
         const auto doc = reply.readJson();
         if (!doc || !doc->isObject()) {
-            emit relayStartFailed(cameraId, sub);
+            emit restreamStartFailed(cameraId, sub);
             return;
         }
-        const QString url = doc->object()["relay_url"].toString();
-        qCDebug(lcLiveView) << "relay/start (" << (sub ? "sub" : "main") << ") ok for" << cameraId
+        const QString url = doc->object()["restream_url"].toString();
+        qCDebug(lcLiveView) << "restream/start (" << (sub ? "sub" : "main") << ") ok for" << cameraId
                             << ":" << url;
         // Stored under the requested slot (sub=tile, main=full-screen)
         // regardless of whether the fallback above actually served it.
-        setRelayUrl(cameraId, url, sub);
+        setRestreamUrl(cameraId, url, sub);
     });
 }
 
-void CameraModel::stopRelay(const QString& cameraId, bool sub) {
+void CameraModel::stopRestream(const QString& cameraId, bool sub) {
     const CameraDto* cam = findCamera(cameraId);
     if (!cam)
         return;
     auto* client = m_siteManager->clientForNode(cam->nodeId);
     if (!client)
         return;
-    // Must match startRelay()'s own fallback decision, or this would stop a
-    // (never-started) sub relay while the actual main-quality one it fell
+    // Must match startRestream()'s own fallback decision, or this would stop a
+    // (never-started) sub restream while the actual main-quality one it fell
     // back to keeps running.
     const bool actualSub = sub && !cam->subRtspUrl.isEmpty();
     const QString path =
-        "/cameras/" + cameraId + "/relay/stop?quality=" + (actualSub ? "sub" : "main");
+        "/cameras/" + cameraId + "/restream/stop?quality=" + (actualSub ? "sub" : "main");
     client->post(path, {}, this, [this, cameraId, sub](QRestReply& reply) {
         if (reply.isSuccess())
-            setRelayUrl(cameraId, QString{}, sub);
+            setRestreamUrl(cameraId, QString{}, sub);
         else
-            qWarning() << "CameraModel: relay/stop (" << (sub ? "sub" : "main") << ") failed for"
+            qWarning() << "CameraModel: restream/stop (" << (sub ? "sub" : "main") << ") failed for"
                        << cameraId << ":" << describeFailure(reply);
     });
 }
@@ -379,17 +379,17 @@ void CameraModel::setRecording(const QString& cameraId, bool recording) {
     }
 }
 
-void CameraModel::setRelayUrl(const QString& cameraId, const QString& url, bool sub) {
+void CameraModel::setRestreamUrl(const QString& cameraId, const QString& url, bool sub) {
     for (int i = 0; i < m_cameras.size(); ++i) {
         if (m_cameras.at(i).id == cameraId) {
-            const int role = sub ? CameraRelayUrlRole : CameraMainRelayUrlRole;
+            const int role = sub ? CameraSubRestreamUrlRole : CameraMainRestreamUrlRole;
             if (sub)
-                m_cameras[i].relayUrl = url;
+                m_cameras[i].subRestreamUrl = url;
             else
-                m_cameras[i].mainRelayUrl = url;
+                m_cameras[i].mainRestreamUrl = url;
             const auto idx = index(i);
             emit dataChanged(idx, idx, {role});
-            emit relayStateChanged(cameraId, url, sub);
+            emit restreamStateChanged(cameraId, url, sub);
             return;
         }
     }
@@ -415,8 +415,8 @@ QVariantMap CameraModel::cameraById(const QString& id) const {
         map["cameraSubRtspUrl"] = cam.subRtspUrl;
         map["cameraUsername"] = cam.username;
         map["cameraRecording"] = cam.recording;
-        map["cameraRelayUrl"] = cam.relayUrl;
-        map["cameraMainRelayUrl"] = cam.mainRelayUrl;
+        map["cameraSubRestreamUrl"] = cam.subRestreamUrl;
+        map["cameraMainRestreamUrl"] = cam.mainRestreamUrl;
         return map;
     }
     return {};
@@ -467,8 +467,8 @@ void CameraModel::insertTestCamera(const QString& id, const QString& name, bool 
     endInsertRows();
 }
 
-void CameraModel::setRelayUrlForTest(const QString& cameraId, const QString& url, bool sub) {
-    setRelayUrl(cameraId, url, sub);
+void CameraModel::setRestreamUrlForTest(const QString& cameraId, const QString& url, bool sub) {
+    setRestreamUrl(cameraId, url, sub);
 }
 
 void CameraModel::clearTestCameras() {
@@ -487,12 +487,8 @@ CameraDto CameraModel::fromJson(const QJsonObject& obj, const QString& nodeId) {
     cam.username = obj["username"].toString();
     cam.enabled = obj["enabled"].toBool();
     cam.recording = obj["recording"].toBool();
-    // BE naming is the opposite of what these fields look like at a glance:
-    // "relay_url" is the MAIN/full-res relay, "sub_relay_url" is the
-    // SUB/low-res one. That matches this model's own relayUrl (tiles, sub) vs
-    // mainRelayUrl (full-screen, main) usage once mapped this way round.
-    cam.relayUrl = obj["sub_relay_url"].toString();
-    cam.mainRelayUrl = obj["relay_url"].toString();
+    cam.subRestreamUrl = obj["sub_restream_url"].toString();
+    cam.mainRestreamUrl = obj["main_restream_url"].toString();
     cam.createdAt = obj["created_at"].toInteger();
     cam.nodeId = nodeId;
     return cam;

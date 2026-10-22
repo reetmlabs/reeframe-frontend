@@ -27,8 +27,8 @@ class CameraModel : public QAbstractListModel {
         CameraSubRtspUrlRole,
         CameraUsernameRole,
         CameraRecordingRole,
-        CameraRelayUrlRole,
-        CameraMainRelayUrlRole,
+        CameraSubRestreamUrlRole,
+        CameraMainRestreamUrlRole,
         CameraCreatedAtRole,
     };
     Q_ENUM(Role)
@@ -53,12 +53,12 @@ class CameraModel : public QAbstractListModel {
     Q_INVOKABLE void setEnabled(const QString& id, bool enabled);
     Q_INVOKABLE void startRecording(const QString& cameraId);
     Q_INVOKABLE void stopRecording(const QString& cameraId);
-    // sub=true is the low-res relay matrix tiles use; sub=false is the
-    // main/full-res relay the full-screen view uses. The BE starts a
+    // sub=true is the low-res restream matrix tiles use; sub=false is the
+    // main/full-res restream the full-screen view uses. The BE starts a
     // live-only pipeline on demand for either quality; no recording
     // session is required (see CameraDto::recording).
-    Q_INVOKABLE void startRelay(const QString& cameraId, bool sub = false);
-    Q_INVOKABLE void stopRelay(const QString& cameraId, bool sub = false);
+    Q_INVOKABLE void startRestream(const QString& cameraId, bool sub = false);
+    Q_INVOKABLE void stopRestream(const QString& cameraId, bool sub = false);
     Q_INVOKABLE void fetchCamera(const QString& cameraId);
     Q_INVOKABLE QVariantMap cameraById(const QString& id) const;
     Q_INVOKABLE int cameraIndexById(const QString& id) const;
@@ -77,9 +77,9 @@ class CameraModel : public QAbstractListModel {
     Q_INVOKABLE void insertTestCamera(const QString& id, const QString& name,
                                       bool recording = false);
 
-    // Test-only: emits relayStateChanged as if startRelay() had just
+    // Test-only: emits restreamStateChanged as if startRestream() had just
     // succeeded, bypassing the network round trip.
-    Q_INVOKABLE void setRelayUrlForTest(const QString& cameraId, const QString& url,
+    Q_INVOKABLE void setRestreamUrlForTest(const QString& cameraId, const QString& url,
                                         bool sub = true);
 
     // Test-only: clears all rows directly. Needed since CameraModel is one
@@ -93,13 +93,13 @@ class CameraModel : public QAbstractListModel {
     void cameraDeleted(const QString& cameraId);
     void enableRollback(const QString& id, bool previousValue);
     void recordingStateChanged(const QString& cameraId, bool recording);
-    void relayStateChanged(const QString& cameraId, const QString& relayUrl, bool sub);
-    void relayStartFailed(const QString& cameraId, bool sub);
+    void restreamStateChanged(const QString& cameraId, const QString& restreamUrl, bool sub);
+    void restreamStartFailed(const QString& cameraId, bool sub);
     void createCameraSucceeded();
     void createCameraFailed(const QString& error);
     // Fired when the active site's backend transitions from Error back to
-    // Online. Tiles should request a fresh relay regardless of what URL
-    // they still hold, since a backend restart kills an on-demand relay
+    // Online. Tiles should request a fresh restream regardless of what URL
+    // they still hold, since a backend restart kills an on-demand restream
     // no matter how briefly it was down.
     void backendRecovered();
 
@@ -108,7 +108,7 @@ class CameraModel : public QAbstractListModel {
     void setLoading(bool v);
     void setAuthRejected(bool v);
     void setRecording(const QString& cameraId, bool recording);
-    void setRelayUrl(const QString& cameraId, const QString& url, bool sub);
+    void setRestreamUrl(const QString& cameraId, const QString& url, bool sub);
     const CameraDto* findCamera(const QString& id) const;
     void onActiveSiteChanged();
 

@@ -22,6 +22,6 @@ class IVideoSink : public QObject {
     void connectedChanged();
     void streamError(const QString& message);
     // The open stream stopped delivering frames or failed. Emitted once per
-    // open(); the owner should ask the backend for a fresh relay.
+    // open(); the owner should ask the backend for a fresh restream.
     void stalled();
 };

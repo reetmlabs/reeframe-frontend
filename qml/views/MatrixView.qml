@@ -278,7 +278,7 @@ Item {
                 // instead of silently landing wherever addTile() put it.
                 TileLayoutModel.moveTileWithPush(newId, col, row)
                 TileLayoutModel.assignCamera(newId, cameraId)
-                CameraModel.startRelay(cameraId, true) // sub quality for a grid tile
+                CameraModel.startRestream(cameraId, true) // sub quality for a grid tile
             }
         }
 
@@ -355,46 +355,46 @@ Item {
                 // reflects a later recording-state/name/location change.
                 property var camData: ({})
                 readonly property bool hasCam: tileCameraId.length > 0
-                property string tileRelayUrl: ""
+                property string tileRestreamUrl: ""
                 readonly property bool isSelected: tile.hasCam
                     && tile.tileCameraId === root.selectedCameraId
 
                 function syncCamData() {
                     camData = hasCam ? CameraModel.cameraById(tileCameraId) : ({})
                 }
-                function syncRelayUrl() {
-                    tileRelayUrl = hasCam
-                        ? (CameraModel.cameraById(tileCameraId).cameraRelayUrl || "")
+                function syncRestreamUrl() {
+                    tileRestreamUrl = hasCam
+                        ? (CameraModel.cameraById(tileCameraId).cameraSubRestreamUrl || "")
                         : ""
                 }
 
                 Component.onCompleted: {
                     syncCamData()
-                    syncRelayUrl()
+                    syncRestreamUrl()
                     // A tile restored from a saved layout at app start never
                     // went through the drag-drop handlers above (the only
-                    // other callers of startRelay). Without this, live
+                    // other callers of startRestream). Without this, live
                     // view only ever worked for a camera just dragged in
                     // during the current session.
                     if (tile.hasCam)
-                        CameraModel.startRelay(tile.tileCameraId, true) // sub quality
+                        CameraModel.startRestream(tile.tileCameraId, true) // sub quality
                 }
                 onTileCameraIdChanged: {
                     syncCamData()
-                    syncRelayUrl()
-                    relayRetryTimer.stop()
-                    tile._relayRetryDelayMs = 2000
+                    syncRestreamUrl()
+                    restreamRetryTimer.stop()
+                    tile._restreamRetryDelayMs = 2000
                 }
 
-                // Backoff for re-requesting a failed relay/start while this
+                // Backoff for re-requesting a failed restream/start while this
                 // tile still shows the same camera: 2s, 4s, 8s, then 10s.
-                property int _relayRetryDelayMs: 2000
+                property int _restreamRetryDelayMs: 2000
                 Timer {
-                    id: relayRetryTimer
-                    objectName: "matrixTileRelayRetryTimer"
+                    id: restreamRetryTimer
+                    objectName: "matrixTileRestreamRetryTimer"
                     onTriggered: {
                         if (tile.hasCam)
-                            CameraModel.startRelay(tile.tileCameraId, true) // sub quality
+                            CameraModel.startRestream(tile.tileCameraId, true) // sub quality
                     }
                 }
 
@@ -402,43 +402,43 @@ Item {
                     target: CameraModel
                     function onModelReset() {
                         tile.syncCamData()
-                        tile.syncRelayUrl()
+                        tile.syncRestreamUrl()
                         // CameraModel's own list is still loading (an async
                         // GET /cameras) when this tile's Component.onCompleted
-                        // first ran, so that startRelay call found no camera
+                        // first ran, so that startRestream call found no camera
                         // yet and silently no-op'd. Retry now that the list
                         // has actually landed, but only if nothing already
-                        // gave this tile a live relay.
-                        if (tile.hasCam && tile.tileRelayUrl.length === 0)
-                            CameraModel.startRelay(tile.tileCameraId, true) // sub quality
+                        // gave this tile a live restream.
+                        if (tile.hasCam && tile.tileRestreamUrl.length === 0)
+                            CameraModel.startRestream(tile.tileCameraId, true) // sub quality
                     }
-                    function onRelayStateChanged(camId, url, sub) {
+                    function onRestreamStateChanged(camId, url, sub) {
                         if (!sub || !tile.hasCam || camId !== tile.tileCameraId)
                             return
-                        relayRetryTimer.stop()
-                        tile._relayRetryDelayMs = 2000
+                        restreamRetryTimer.stop()
+                        tile._restreamRetryDelayMs = 2000
                         // Routing through empty forces a real property
                         // change even if the backend returns the same URL.
-                        tile.tileRelayUrl = ""
-                        tile.tileRelayUrl = url
+                        tile.tileRestreamUrl = ""
+                        tile.tileRestreamUrl = url
                     }
-                    function onRelayStartFailed(camId, sub) {
+                    function onRestreamStartFailed(camId, sub) {
                         if (!sub || !tile.hasCam || camId !== tile.tileCameraId)
                             return
-                        relayRetryTimer.interval = tile._relayRetryDelayMs
-                        relayRetryTimer.restart()
-                        tile._relayRetryDelayMs = Math.min(tile._relayRetryDelayMs * 2, 10000)
+                        restreamRetryTimer.interval = tile._restreamRetryDelayMs
+                        restreamRetryTimer.restart()
+                        tile._restreamRetryDelayMs = Math.min(tile._restreamRetryDelayMs * 2, 10000)
                     }
                     function onRecordingStateChanged(camId, recording) {
                         if (tile.hasCam && camId === tile.tileCameraId)
                             tile.syncCamData()
                     }
-                    // The relay URL a tile already has may be left over from
+                    // The restream URL a tile already has may be left over from
                     // before the outage and silently dead, so ask for a fresh
                     // one unconditionally rather than only when it's empty.
                     function onBackendRecovered() {
                         if (tile.hasCam)
-                            CameraModel.startRelay(tile.tileCameraId, true) // sub quality
+                            CameraModel.startRestream(tile.tileCameraId, true) // sub quality
                     }
                 }
 
@@ -489,9 +489,9 @@ Item {
                         if (TileLayoutModel.hasCameraAssigned(newCameraId))
                             return
                         if (tile.hasCam)
-                            CameraModel.stopRelay(tile.tileCameraId, true) // sub quality
+                            CameraModel.stopRestream(tile.tileCameraId, true) // sub quality
                         TileLayoutModel.assignCamera(tile.tileId, newCameraId)
-                        CameraModel.startRelay(newCameraId, true) // sub quality
+                        CameraModel.startRestream(newCameraId, true) // sub quality
                     }
                 }
 
@@ -506,30 +506,30 @@ Item {
                     // has loaded, which would silently empty cameraId (and
                     // break VideoSinkRegistry registration and the id passed
                     // to openFullScreen/requestFullScreen) even though
-                    // tileRelayUrl above stays correct.
+                    // tileRestreamUrl above stays correct.
                     cameraId: tile.tileCameraId
                     cameraName: tile.camData.cameraName || ""
                     cameraLocation: tile.camData.cameraLocation || ""
-                    relayUrl: tile.tileRelayUrl
+                    restreamUrl: tile.tileRestreamUrl
                     isRecording: tile.camData.cameraRecording || false
-                    awaitingRelay: relayRetryTimer.running
+                    awaitingRestream: restreamRetryTimer.running
                     onLiveStreamStalled: {
                         if (tile.hasCam)
-                            CameraModel.startRelay(tile.tileCameraId, true) // sub quality
+                            CameraModel.startRestream(tile.tileCameraId, true) // sub quality
                     }
                     onOpenFullScreen: (camId) => {
                         root.requestFullScreen({
                             cameraId: camId,
                             cameraName: tile.camData.cameraName,
-                            relayUrl: tile.tileRelayUrl,
-                            mainRelayUrl: tile.camData.cameraMainRelayUrl || "",
+                            subRestreamUrl: tile.tileRestreamUrl,
+                            mainRestreamUrl: tile.camData.cameraMainRestreamUrl || "",
                             isRecording: tile.camData.cameraRecording,
                             hasSubStream: (tile.camData.cameraSubRtspUrl || "").length > 0
                         })
                     }
                     onCloseRequested: (camId) => {
                         if (tile.hasCam)
-                            CameraModel.stopRelay(camId, true) // sub quality
+                            CameraModel.stopRestream(camId, true) // sub quality
                         TileLayoutModel.removeTile(tile.tileId)
                     }
                 }

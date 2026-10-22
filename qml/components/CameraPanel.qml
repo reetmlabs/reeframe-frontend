@@ -285,7 +285,7 @@ Rectangle {
                     required property string cameraSubRtspUrl
                     required property string cameraUsername
                     required property bool   cameraRecording
-                    required property string cameraRelayUrl
+                    required property string cameraSubRestreamUrl
 
                     property string thumbnailUrl: ThumbnailCache.hasThumbnail(row.cameraId)
                         ? ("file://" + ThumbnailCache.thumbnailPath(row.cameraId)) : ""

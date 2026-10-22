@@ -8,7 +8,7 @@
 #include <QString>
 
 // Lets a CameraTile's already-open IVideoSink be borrowed by FullCameraView
-// instead of opening a second, independent connection to the same relay.
+// instead of opening a second, independent connection to the same restream.
 // FullCameraView calls notifyReleased() on destruction so the tile can
 // reclaim the display.
 class VideoSinkRegistry : public QObject {

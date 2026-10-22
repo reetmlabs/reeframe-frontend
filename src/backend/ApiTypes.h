@@ -15,10 +15,10 @@ struct CameraDto {
     QString username;
     bool enabled = false;
     // Whether a recording (disk-writing) branch is attached, independent of
-    // whether a live view relay is running (see relayUrl/mainRelayUrl below).
+    // whether a live view restream is running (see subRestreamUrl/mainRestreamUrl below).
     bool recording = false;
-    QString relayUrl; // sub-quality relay URL, used by matrix tiles
-    QString mainRelayUrl; // main-quality relay URL, used by full-screen view
+    QString subRestreamUrl; // sub-quality restream URL, used by matrix tiles
+    QString mainRestreamUrl; // main-quality restream URL, used by full-screen view
     qint64 createdAt = 0;
     QString nodeId;
 };

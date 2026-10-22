@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Breaking
+
+- Live view uses the backend's renamed restream API (`/cameras/{id}/restream/start|stop`,
+  `main_restream_url`, `sub_restream_url`). It needs a backend with the same
+  change (reetmlabs/reeframe-backend#22).
+
 ## v0.2.0
 
 First public release. Version numbers match the Reeframe backend this client

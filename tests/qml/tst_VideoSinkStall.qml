@@ -8,7 +8,7 @@ import Reeframe
 
 // A live sink must report a stream that delivers no frames, including one
 // that never connects, exactly once per open() so its owner can request a
-// fresh relay, and never once it has been closed.
+// fresh restream, and never once it has been closed.
 TestCase {
     id: testCase
     name: "VideoSinkStall"

@@ -6,7 +6,7 @@ import QtTest
 import Reeframe
 
 // A tile whose live stream stalls must show "Connecting…" again, and a
-// failed relay request must keep being retried with backoff for as long as
+// failed restream request must keep being retried with backoff for as long as
 // the tile shows that camera.
 TestCase {
     id: testCase
@@ -37,8 +37,8 @@ TestCase {
         verify(tileItem !== null, "matrix tile not found");
         const cameraTile = findChild(tileItem, "matrixTileCameraStream");
         verify(cameraTile !== null, "camera tile stream not found");
-        const retryTimer = findChild(tileItem, "matrixTileRelayRetryTimer");
-        verify(retryTimer !== null, "relay retry timer not found");
+        const retryTimer = findChild(tileItem, "matrixTileRestreamRetryTimer");
+        verify(retryTimer !== null, "restream retry timer not found");
         const sink = findChild(cameraTile, "cameraTileLiveSink");
         verify(sink !== null, "live sink not found");
         return { cameraTile: cameraTile, retryTimer: retryTimer, sink: sink };
@@ -46,7 +46,7 @@ TestCase {
 
     function test_stalledStreamShowsConnectingAgain() {
         const parts = tileParts();
-        CameraModel.setRelayUrlForTest(cameraId, "rtsp://relay.test/stall", true);
+        CameraModel.setRestreamUrlForTest(cameraId, "rtsp://restream.test/stall", true);
         // Stands in for a stream that was playing and then froze.
         parts.cameraTile.connectionState = "connected";
 
@@ -56,27 +56,27 @@ TestCase {
                 "a stalled stream must show Connecting instead of its frozen last frame");
     }
 
-    function test_failedRelayRequestIsRetriedWithBackoff() {
+    function test_failedRestreamRequestIsRetriedWithBackoff() {
         const parts = tileParts();
 
-        CameraModel.relayStartFailed(cameraId, true);
-        verify(parts.retryTimer.running, "a failed relay request must schedule a retry");
+        CameraModel.restreamStartFailed(cameraId, true);
+        verify(parts.retryTimer.running, "a failed restream request must schedule a retry");
         compare(parts.retryTimer.interval, 2000);
-        verify(parts.cameraTile.awaitingRelay,
+        verify(parts.cameraTile.awaitingRestream,
                "the tile must keep showing Connecting while a retry is pending");
 
-        CameraModel.relayStartFailed(cameraId, true);
+        CameraModel.restreamStartFailed(cameraId, true);
         compare(parts.retryTimer.interval, 4000, "each further failure must back off");
-        CameraModel.relayStartFailed(cameraId, true);
-        CameraModel.relayStartFailed(cameraId, true);
-        CameraModel.relayStartFailed(cameraId, true);
+        CameraModel.restreamStartFailed(cameraId, true);
+        CameraModel.restreamStartFailed(cameraId, true);
+        CameraModel.restreamStartFailed(cameraId, true);
         compare(parts.retryTimer.interval, 10000, "the backoff must be capped at 10s");
 
-        CameraModel.setRelayUrlForTest(cameraId, "rtsp://relay.test/back", true);
-        verify(!parts.retryTimer.running, "a successful relay must cancel the pending retry");
+        CameraModel.setRestreamUrlForTest(cameraId, "rtsp://restream.test/back", true);
+        verify(!parts.retryTimer.running, "a successful restream must cancel the pending retry");
 
-        CameraModel.relayStartFailed(cameraId, true);
-        compare(parts.retryTimer.interval, 2000, "a successful relay must reset the backoff");
+        CameraModel.restreamStartFailed(cameraId, true);
+        compare(parts.retryTimer.interval, 2000, "a successful restream must reset the backoff");
         parts.retryTimer.stop();
     }
 }
