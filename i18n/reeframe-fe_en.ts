@@ -1064,11 +1064,6 @@
         <translation>UUID (optional)</translation>
     </message>
     <message>
-        <location filename="../qml/components/NodeConfigPanel.qml" line="461"/>
-        <source>Manual range</source>
-        <translation>Manual range</translation>
-    </message>
-    <message>
         <location filename="../qml/components/NodeConfigPanel.qml" line="475"/>
         <location filename="../qml/components/NodeConfigPanel.qml" line="584"/>
         <source>Quality</source>
