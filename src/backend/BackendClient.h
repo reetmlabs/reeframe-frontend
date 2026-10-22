@@ -66,6 +66,10 @@ class BackendClient : public QObject {
     // restoreSession() below.
     Q_INVOKABLE void setStatusForTest(Status s) { setStatus(s); }
 
+    // Test-only: runs one background health poll now instead of waiting for
+    // the poll timer. Unlike checkHealth(), it doesn't pass through Connecting.
+    Q_INVOKABLE void pollHealthForTest() { pollHealthSilently(); }
+
     // ctx is the lifetime guard: the callback is never invoked after ctx is destroyed.
     void get(const QString& path, QObject* ctx, ReplyCallback cb);
     void post(const QString& path, const QJsonDocument& body, QObject* ctx, ReplyCallback cb);

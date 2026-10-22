@@ -63,8 +63,13 @@ void FakeBackendServer::onNewConnection() {
 }
 
 QByteArray FakeBackendServer::respond(const QByteArray& path) {
-    if (path == "/health")
-        return httpResponse(200, "{}");
+    ++m_requestCountByPath[QString::fromUtf8(path)];
+    if (path == "/health") {
+        QJsonObject body;
+        if (!m_version.isEmpty())
+            body["version"] = m_version;
+        return httpResponse(200, QJsonDocument(body).toJson(QJsonDocument::Compact));
+    }
     ++m_requestCount;
     emit requestCountChanged();
     if (path != "/auth/refresh") {
