@@ -30,6 +30,7 @@ Item {
     signal dragEnded(string nodeId)
 
     readonly property bool isTrigger: nodeData.type === "trigger_root"
+    readonly property bool isCondition: nodeData.type === "condition"
 
     x: nodeData.x !== undefined ? nodeData.x : 0
     y: nodeData.y !== undefined ? nodeData.y : 0
@@ -222,6 +223,19 @@ Item {
                 anchors.fill: parent
                 cursorShape: Qt.CrossCursor
                 onClicked: nodeRoot.outputPortClicked(index)
+            }
+
+            // Names a Condition's branches, which are otherwise told apart
+            // only by edge colour. Sits above the true port and below the
+            // false port, so it stays clear of the edge leaving each one.
+            Text {
+                objectName: "dagNodePortLabel_" + (nodeData.id || "") + "_" + index
+                visible: nodeRoot.isCondition
+                text: index === 0 ? qsTr("True") : qsTr("False")
+                font.pixelSize: Theme.fontXs
+                color: index === 0 ? Theme.accent : Theme.textSecondary
+                x: parent.width + Theme.spaceXs
+                y: index === 0 ? -height : parent.height
             }
         }
     }
