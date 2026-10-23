@@ -30,7 +30,10 @@ TestCase {
 
     function init() {
         clearAllConnections();
-        const url = "https://coord-" + Date.now() + "-" + Math.random() + ".test";
+        // A Coordinator that refuses connections fails the site's token request
+        // at once. A made-up host name would fail only after a DNS lookup, and
+        // the session reset that follows could land after the settle wait below.
+        const url = "http://127.0.0.1:1/coord-" + Date.now() + "-" + Math.random();
         CoordinatorManager.addConnection(url);
         const beId = "qmltest-be-" + Date.now() + "-" + Math.random();
         SiteManager.seedRemoteSiteForTest(url, beId, "Background Refresh", EmptyBackend.url);
