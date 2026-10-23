@@ -591,6 +591,19 @@
     </message>
 </context>
 <context>
+    <name>DagNode</name>
+    <message>
+        <location filename="../qml/components/DagNode.qml" line="234"/>
+        <source>True</source>
+        <translation>Wahr</translation>
+    </message>
+    <message>
+        <location filename="../qml/components/DagNode.qml" line="234"/>
+        <source>False</source>
+        <translation>Falsch</translation>
+    </message>
+</context>
+<context>
     <name>DestinationListView</name>
     <message>
         <location filename="../qml/views/DestinationListView.qml" line="32"/>
