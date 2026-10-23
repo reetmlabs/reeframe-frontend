@@ -319,6 +319,21 @@ QString PipelineGraphModel::addNode(const QString& type, double x, double y) {
     return n.id;
 }
 
+QString PipelineGraphModel::duplicateNode(const QString& nodeId, double dx, double dy) {
+    const int i = nodeIndex(nodeId);
+    if (i < 0)
+        return {};
+    PipelineNodeDto n = m_nodes.at(i);
+    n.id = "node-" + QUuid::createUuid().toString(QUuid::WithoutBraces);
+    n.x += dx;
+    n.y += dy;
+    n.persisted = false;
+    m_nodes.append(n);
+    emit nodesChanged();
+    setDirty(true);
+    return n.id;
+}
+
 void PipelineGraphModel::removeNode(const QString& nodeId) {
     const int i = nodeIndex(nodeId);
     if (i < 0)
