@@ -72,6 +72,9 @@ Item {
         if (event.key === Qt.Key_Backspace) {
             handleDeleteKey()
             event.accepted = true
+        } else if (event.key === Qt.Key_D && (event.modifiers & Qt.ControlModifier)) {
+            canvas.duplicateSelected()
+            event.accepted = true
         }
     }
     Keys.onEscapePressed: {
