@@ -106,7 +106,6 @@ Rectangle {
         ecPostBox.value = cfg.post_event_secs !== undefined ? cfg.post_event_secs : 0
         ecFormatField.text = cfg.format || ""
         ecCameraField.cameraId = cfg.camera_id || ""
-        ecManualToggle.checked = cfg.use_manual_range || false
 
         snapFormatCombo.currentIndex = comboIndexOr(snapshotFormats, cfg.format, 0)
         snapQualitySlider.value = cfg.quality !== undefined ? cfg.quality : 85
@@ -178,7 +177,6 @@ Rectangle {
             cfg.post_event_secs = ecPostBox.value
             cfg.format = ecFormatField.text.trim() || "mp4"
             if (ecCameraField.cameraId) cfg.camera_id = ecCameraField.cameraId
-            cfg.use_manual_range = ecManualToggle.checked
         } else if (currentActionType === "snapshot") {
             cfg.format = snapshotFormats[snapFormatCombo.currentIndex]
             cfg.quality = snapQualitySlider.value
@@ -661,7 +659,6 @@ Rectangle {
                     objectName: "nodeConfigExtractClipCameraCombo"
                     label: qsTr("Camera"); onCommitted: panelRoot.commitConfig()
                 }
-                FormToggle { id: ecManualToggle; label: qsTr("Manual range") }
             }
 
             Column {
