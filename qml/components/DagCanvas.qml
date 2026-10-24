@@ -44,6 +44,20 @@ Item {
         root.highlightedIds = []
     }
 
+    // Copies the selected node, offset down and to the right, and selects the
+    // copy. Does nothing for an edge or the trigger: a pipeline has a single
+    // trigger, so a copy of it would only fail validation.
+    function duplicateSelected() {
+        // Commits any pending config panel edit first, so the copy includes it.
+        root.forceActiveFocus()
+        const node = PipelineGraphModel.nodeById(root.selectedId)
+        if (node.id === undefined || node.type === "trigger_root")
+            return
+        const copyId = PipelineGraphModel.duplicateNode(node.id, Theme.spaceXl, Theme.spaceXl)
+        if (copyId !== "")
+            root.selectId(copyId)
+    }
+
     // Nodes flagged for a transient visual highlight, e.g. every node in a
     // cycle a problems list entry points at, where there's no single node to
     // select. Cleared by selectId() the next time the user picks anything

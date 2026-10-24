@@ -31,6 +31,10 @@ class PipelineGraphModel : public QObject {
     Q_INVOKABLE void save();
 
     Q_INVOKABLE QString addNode(const QString& type, double x, double y);
+    // Adds a copy of the node with the same type, label and config, offset
+    // by (dx, dy) and with no edges. Returns the copy's id, or an empty
+    // string if nodeId is unknown.
+    Q_INVOKABLE QString duplicateNode(const QString& nodeId, double dx, double dy);
     Q_INVOKABLE void removeNode(const QString& nodeId);
     Q_INVOKABLE void moveNode(const QString& nodeId, double x, double y);
     Q_INVOKABLE void updateNodeLabel(const QString& nodeId, const QString& label);
