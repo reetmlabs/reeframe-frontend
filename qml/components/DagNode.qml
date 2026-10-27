@@ -32,6 +32,17 @@ Item {
     readonly property bool isTrigger: nodeData.type === "trigger_root"
     readonly property bool isCondition: nodeData.type === "condition"
 
+    // A Transport node's destination type (s3, email, ...), looked up live so
+    // it follows edits to the destination. Empty when the node has no
+    // destination or the destination isn't in DestinationModel.
+    readonly property string destinationType: {
+        const _ = DestinationModel.count
+        if (nodeData.type !== "transport") return ""
+        const id = (nodeData.config && nodeData.config.destination_id) || ""
+        if (id === "") return ""
+        return DestinationModel.destinationById(id).destType || ""
+    }
+
     x: nodeData.x !== undefined ? nodeData.x : 0
     y: nodeData.y !== undefined ? nodeData.y : 0
 
@@ -149,6 +160,7 @@ Item {
         }
 
         Text {
+            id: typeCaption
             anchors {
                 left: parent.left; leftMargin: Theme.spaceS
                 bottom: parent.bottom; bottomMargin: 7
@@ -156,6 +168,16 @@ Item {
             text: nodeRoot.typeLabel
             font.pixelSize: Theme.fontXs
             color: Theme.textDisabled
+        }
+
+        TypeChip {
+            objectName: "dagNodeTypeChip_" + (nodeData.id || "")
+            visible: nodeRoot.destinationType !== ""
+            type: nodeRoot.destinationType
+            anchors {
+                right: parent.right; rightMargin: Theme.spaceS
+                verticalCenter: typeCaption.verticalCenter
+            }
         }
 
         Behavior on border.color { ColorAnimation { duration: Theme.durationFast } }
