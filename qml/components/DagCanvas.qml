@@ -143,6 +143,32 @@ Item {
         return screenToWorld(width / 2, height / 2)
     }
 
+    // How close, in screen pixels, a click has to land to an edge's line to
+    // pick that edge.
+    readonly property real edgeHitTolerance: 6
+
+    // The id of the edge drawn closest to the screen point, if any is within
+    // edgeHitTolerance, else "". Later edges are drawn on top, so they win
+    // ties.
+    function edgeAt(sx, sy) {
+        const p = screenToWorld(sx, sy)
+        const tolerance = edgeHitTolerance / zoom
+        let hitId = ""
+        let best = tolerance
+        for (let i = edgeRepeater.count - 1; i >= 0; i--) {
+            const edge = edgeRepeater.itemAt(i)
+            if (!edge || !edge.valid)
+                continue
+            const d = DagGeometry.distanceToEdge(p.x, p.y, edge.startX, edge.startY,
+                                                 edge.endX, edge.endY)
+            if (d < best) {
+                best = d
+                hitId = edge.edgeData.id
+            }
+        }
+        return hitId
+    }
+
     function edgeTypeFor(fromNodeId, portIndex) {
         const node = PipelineGraphModel.nodeById(fromNodeId)
         if (!node || node.id === undefined)
@@ -237,6 +263,7 @@ Item {
 
         /* Edges, rendered below nodes */
         Repeater {
+            id: edgeRepeater
             model: PipelineGraphModel.edges
 
             delegate: DagEdge {
@@ -248,7 +275,6 @@ Item {
                 fromPortIndex: root.portIndexForEdge(modelData)
                 outputPortCount: root.outputPortCountFor(modelData.fromNodeId)
                 toOutputPortCount: root.outputPortCountFor(modelData.toNodeId)
-                onSelectRequested: root.selectId(edgeData.id)
             }
         }
 
@@ -270,7 +296,7 @@ Item {
                 : 0
             readonly property real gEndX: root.edgeCursorPos.x
             readonly property real gEndY: root.edgeCursorPos.y
-            readonly property real cpOffset: Math.max(60, Math.min(Math.abs(gEndX - gStartX) * 0.6, 120))
+            readonly property real cpOffset: DagGeometry.edgeControlOffset(gStartX, gEndX)
             readonly property real pad: 130
 
             visible: root.drawingEdge && gValid
@@ -363,8 +389,13 @@ Item {
         }
     }
 
+    // Handles every press that doesn't land on a node or port: edges have no
+    // input of their own. A press that moves past the drag distance pans,
+    // wherever it started. Otherwise the release counts as a click, which
+    // selects the edge under the cursor or clears the selection.
     MouseArea {
         id: panArea
+        objectName: "dagCanvasPanArea"
         anchors.fill: parent
         z: -1
         acceptedButtons: Qt.LeftButton | Qt.MiddleButton
@@ -373,6 +404,12 @@ Item {
         property real pressY: 0
         property real pressPanX: 0
         property real pressPanY: 0
+        property bool panning: false
+
+        function endPress() {
+            panning = false
+            cursorShape = Qt.ArrowCursor
+        }
 
         onPressed: (mouse) => {
             // Reclaims keyboard focus from any config-panel text field the
@@ -383,26 +420,38 @@ Item {
             pressY = mouse.y
             pressPanX = root.panX
             pressPanY = root.panY
-            if (!root.drawingEdge)
-                cursorShape = Qt.ClosedHandCursor
+            panning = false
         }
-        onReleased: cursorShape = Qt.ArrowCursor
         onPositionChanged: (mouse) => {
-            if (root.drawingEdge)
+            if (root.drawingEdge) {
                 root.edgeCursorPos = root.screenToWorld(mouse.x, mouse.y)
-            if (pressed && !root.drawingEdge) {
+                return
+            }
+            if (!pressed)
+                return
+            if (!panning && Math.hypot(mouse.x - pressX, mouse.y - pressY)
+                    >= Qt.styleHints.startDragDistance) {
+                panning = true
+                cursorShape = Qt.ClosedHandCursor
+            }
+            if (panning) {
                 root.panX = pressPanX + (mouse.x - pressX)
                 root.panY = pressPanY + (mouse.y - pressY)
             }
         }
-        onClicked: {
+        onReleased: (mouse) => {
+            const wasPanning = panning
+            endPress()
+            if (wasPanning)
+                return
             if (root.drawingEdge) {
                 root.drawingEdge = false
                 root.edgeFromNodeId = ""
             } else {
-                root.selectId("")
+                root.selectId(root.edgeAt(mouse.x, mouse.y))
             }
         }
+        onCanceled: endPress()
     }
 
     /* ----- Cursor tracking for ghost edge while hovering over nodes ----- */
