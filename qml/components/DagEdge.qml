@@ -26,8 +26,6 @@ Item {
     // on release.
     property var liveNodePos: ({})
 
-    signal selectRequested()
-
     /* Re-evaluate whenever nodes move, not just when edges change. */
     readonly property var fromNode: {
         const _ = PipelineGraphModel.nodes
@@ -107,10 +105,5 @@ Item {
                 control2Y: edgeRoot.lEndY
             }
         }
-    }
-
-    MouseArea {
-        anchors.fill: parent
-        onClicked: edgeRoot.selectRequested()
     }
 }
