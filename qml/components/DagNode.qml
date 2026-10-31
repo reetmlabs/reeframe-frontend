@@ -87,8 +87,12 @@ Item {
                 startY = nodeRoot.y
             } else {
                 const id = nodeRoot.nodeData.id
-                PipelineGraphModel.moveNode(id, nodeRoot.x, nodeRoot.y)
+                const x = nodeRoot.x
+                const y = nodeRoot.y
+                // moveNode() rebuilds the node Repeater, destroying this item,
+                // so it has to come after the last signal this item emits.
                 nodeRoot.dragEnded(id)
+                PipelineGraphModel.moveNode(id, x, y)
             }
         }
 
