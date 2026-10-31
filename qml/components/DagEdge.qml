@@ -57,10 +57,7 @@ Item {
     readonly property real endX: valid ? toPos.x : 0
     readonly property real endY: valid ? toPos.y + DagGeometry.inputPortY(toOutputPortCount) : 0
 
-    // Floors the horizontal reach of the control points so near-vertically
-    // stacked nodes (small dx) still get a visible curve instead of the
-    // bezier collapsing toward a straight, kinked-looking line.
-    readonly property real cpOffset: Math.max(60, Math.min(Math.abs(endX - startX) * 0.6, 120))
+    readonly property real cpOffset: DagGeometry.edgeControlOffset(startX, endX)
 
     readonly property real pad: 130
     readonly property real bboxX: Math.min(startX, endX) - pad

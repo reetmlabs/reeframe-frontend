@@ -270,7 +270,7 @@ Item {
                 : 0
             readonly property real gEndX: root.edgeCursorPos.x
             readonly property real gEndY: root.edgeCursorPos.y
-            readonly property real cpOffset: Math.max(60, Math.min(Math.abs(gEndX - gStartX) * 0.6, 120))
+            readonly property real cpOffset: DagGeometry.edgeControlOffset(gStartX, gEndX)
             readonly property real pad: 130
 
             visible: root.drawingEdge && gValid

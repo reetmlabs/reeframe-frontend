@@ -26,3 +26,41 @@ function outputPortY(index, outputPortCount) {
 function inputPortY(outputPortCount) {
     return nodeHeight(outputPortCount) / 2
 }
+
+// Edges are cubic beziers from an output port (start) to an input port (end),
+// with both control points pulled out horizontally by this much. The floor
+// keeps near-vertically stacked nodes (small dx) from collapsing the curve
+// into a straight, kinked-looking line.
+function edgeControlOffset(startX, endX) {
+    return Math.max(60, Math.min(Math.abs(endX - startX) * 0.6, 120))
+}
+
+// Shortest distance from (px, py) to the edge drawn from (sx, sy) to
+// (ex, ey), measured against the curve split into straight segments.
+function distanceToEdge(px, py, sx, sy, ex, ey) {
+    const segments = 24
+    const offset = edgeControlOffset(sx, ex)
+    const c1x = sx + offset, c1y = sy
+    const c2x = ex - offset, c2y = ey
+    let best = Infinity
+    let prevX = sx, prevY = sy
+    for (let i = 1; i <= segments; i++) {
+        const t = i / segments
+        const u = 1 - t
+        const x = u * u * u * sx + 3 * u * u * t * c1x + 3 * u * t * t * c2x + t * t * t * ex
+        const y = u * u * u * sy + 3 * u * u * t * c1y + 3 * u * t * t * c2y + t * t * t * ey
+        best = Math.min(best, distanceToSegment(px, py, prevX, prevY, x, y))
+        prevX = x
+        prevY = y
+    }
+    return best
+}
+
+function distanceToSegment(px, py, ax, ay, bx, by) {
+    const dx = bx - ax, dy = by - ay
+    const lengthSq = dx * dx + dy * dy
+    const t = lengthSq === 0 ? 0
+        : Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / lengthSq))
+    const cx = ax + t * dx, cy = ay + t * dy
+    return Math.sqrt((px - cx) * (px - cx) + (py - cy) * (py - cy))
+}
