@@ -7,6 +7,7 @@
 #include <QVariantList>
 #include <QVariantMap>
 #include <functional>
+#include <optional>
 
 class SiteManager;
 
@@ -71,6 +72,9 @@ class PipelineGraphModel : public QObject {
 
     void setDirty(bool v);
     void setLoading(bool v);
+    // Replaces the nodes, and the edges when given, with what load() fetched.
+    void publishLoaded(const QList<PipelineNodeDto>& nodes,
+                       const std::optional<QList<PipelineEdgeDto>>& edges = std::nullopt);
     int nodeIndex(const QString& nodeId) const;
     int edgeIndex(const QString& edgeId) const;
 

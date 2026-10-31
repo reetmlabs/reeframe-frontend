@@ -72,6 +72,10 @@ void PipelineGraphModel::load(const QString& pipelineId) {
     m_deletedNodeIds.clear();
     m_deletedEdgeIds.clear();
 
+    // The three replies are collected and published together, so the canvas
+    // builds its nodes once. Publishing each as it arrived would rebuild
+    // every node mid-load, destroying any node the user had started dragging.
+    // A failed request still publishes whatever arrived before it.
     client->get("/pipelines/" + pipelineId + "/nodes", this, [this, pipelineId](QRestReply& reply) {
         if (!reply.isSuccess()) {
             setLoading(false);
@@ -84,16 +88,17 @@ void PipelineGraphModel::load(const QString& pipelineId) {
             for (const auto& v : doc->array())
                 nodes.append(nodeFromJson(v.toObject()));
         }
-        m_nodes = std::move(nodes);
-        emit nodesChanged();
 
         auto* client2 = m_siteManager->clientForSite(m_siteManager->activeSiteId());
         if (!client2) {
+            publishLoaded(nodes);
             setLoading(false);
             return;
         }
-        client2->get("/pipelines/" + pipelineId + "/edges", this, [this, pipelineId](QRestReply& reply2) {
+        client2->get("/pipelines/" + pipelineId + "/edges", this,
+                     [this, pipelineId, nodes](QRestReply& reply2) {
             if (!reply2.isSuccess()) {
+                publishLoaded(nodes);
                 setLoading(false);
                 emit loadFailed(describeFailure(reply2));
                 return;
@@ -104,8 +109,6 @@ void PipelineGraphModel::load(const QString& pipelineId) {
                 for (const auto& v : doc2->array())
                     edges.append(edgeFromJson(v.toObject()));
             }
-            m_edges = std::move(edges);
-            emit edgesChanged();
 
             // A trigger_root node's real config lives in a separate resource
             // (see addTypeSpecificFields()'s doc comment on the trigger_root
@@ -113,30 +116,44 @@ void PipelineGraphModel::load(const QString& pipelineId) {
             // are in hand.
             auto* client3 = m_siteManager->clientForSite(m_siteManager->activeSiteId());
             if (!client3) {
+                publishLoaded(nodes, edges);
                 setLoading(false);
                 return;
             }
-            client3->get("/pipelines/" + pipelineId + "/triggers", this, [this](QRestReply& reply3) {
-                setLoading(false);
+            client3->get("/pipelines/" + pipelineId + "/triggers", this,
+                         [this, nodes, edges](QRestReply& reply3) mutable {
                 if (!reply3.isSuccess()) {
+                    publishLoaded(nodes, edges);
+                    setLoading(false);
                     emit loadFailed(describeFailure(reply3));
                     return;
                 }
                 const auto doc3 = reply3.readJson();
                 if (doc3 && doc3->isArray() && !doc3->array().isEmpty()) {
                     const QVariantMap cfg = triggerConfigFromJson(doc3->array().at(0).toObject());
-                    for (auto& n : m_nodes) {
+                    for (auto& n : nodes) {
                         if (n.type == "trigger_root") {
                             n.config = cfg;
                             break;
                         }
                     }
-                    emit nodesChanged();
                 }
+                publishLoaded(nodes, edges);
+                setLoading(false);
                 setDirty(false);
             });
         });
     });
+}
+
+void PipelineGraphModel::publishLoaded(const QList<PipelineNodeDto>& nodes,
+                                       const std::optional<QList<PipelineEdgeDto>>& edges) {
+    m_nodes = nodes;
+    emit nodesChanged();
+    if (edges) {
+        m_edges = *edges;
+        emit edgesChanged();
+    }
 }
 
 // Persists the local graph against the real per-node/per-edge REST CRUD the
